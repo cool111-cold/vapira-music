@@ -21,9 +21,12 @@ export const AddTag:React.FC <AddTagProps> = ({style, result, content}) => {
     const inputStyle: CSSProperties = {
         border: `2px solid ${!find ? Colors.grey: Colors.primary}`,
         borderRadius: 20,
-        height: 35,
+        // height: 35,
+        height: 40,
         padding: '0px 10px',
         outlineColor: Colors.primary,
+        backgroundColor: Colors.none,
+        outline: 'none'
     }
 
     const resultStyle: CSSProperties = {

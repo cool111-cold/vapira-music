@@ -31,7 +31,7 @@ export const GetAllTrack = async (): Promise<TrackData[]> => {
 
 // переключатель языка
 // полноэкранный режим
-
+//
 interface Tags {
     id: number;
     name: string;
@@ -61,6 +61,24 @@ export const GetTagsById = async ({ id }: GetTagsByIdProps): Promise<Tags[]> => 
 
     return await fetchData();
 };
+
+export const GetTagsByAuthorId = async ({ id }: GetTagsByIdProps): Promise<Tags[]> => {
+    const fetchData = async (): Promise<Tags[]> => {
+      try {
+        const response = await axios.get(`http://y91326yd.beget.tech/tags/autor/${id}`);
+        return response.data;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error({ error: true, message: error.message });
+        } else {
+          console.error({ error: true, message: 'An unknown error occurred' });
+        }
+        return [];
+      }
+    };
+  
+    return await fetchData();
+  };
 
 // export const DelTagsById = async ({ id }: GetTagsByIdProps): Promise<Tags[]> => {
 //     const fetchData = async (): Promise<Tags[]> => {

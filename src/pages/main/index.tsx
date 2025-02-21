@@ -2,7 +2,6 @@ import React, { useEffect } from "react"
 import { Radio } from "../../components/radio"
 import { TrackList } from "../../components/track-list"
 import { useMyContext } from "../../context"
-import axios from "axios"
 
 export const MainPage = () => {
     const {trackList} = useMyContext();
@@ -10,7 +9,7 @@ export const MainPage = () => {
 
     return (
         <div className="defoult-page">
-            {/* <Radio/> */}
+            <Radio/>
             <TrackList data={trackList}/>
         </div>
     )
