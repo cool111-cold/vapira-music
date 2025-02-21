@@ -5,7 +5,7 @@ import { Colors } from "../../colors";
 interface ButtonProps {
     title: string;
     onClick: () => void;
-    type: 'choice';
+    type?: 'choice';
     active?: boolean;
 }
 

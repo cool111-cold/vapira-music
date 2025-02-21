@@ -7,13 +7,15 @@ interface TagContainerProps {
     title: string;
     color: string;
     image?: string;
-    onClick: (id: number)=>void;
+    onClick?: (id: number)=>void;
+    type: 'add' | 'del';
 }
 
-export const TagContainer:React.FC <TagContainerProps> = ({title, color, image, id, onClick}) => {
+export const TagContainer:React.FC <TagContainerProps> = ({title, color, image, id, onClick, type}) => {
     const [isHover, setIsHover] = useState<boolean>(false);
 
     const blockStyle: CSSProperties = {
+        width: 'fit-content',
         border: `2px solid`,
         borderColor: color,
         borderRadius: 20,
@@ -35,6 +37,8 @@ export const TagContainer:React.FC <TagContainerProps> = ({title, color, image, 
         transition: 'all ease .25s',
         width: isHover ? 25 : 0
     }
+
+    const iconName = type === 'add' ? 'addCircle' : 'close';
     
     return (
         <div style={blockStyle} onMouseEnter={()=>setIsHover(true)} onMouseLeave={()=>setIsHover(false)}>
@@ -45,11 +49,9 @@ export const TagContainer:React.FC <TagContainerProps> = ({title, color, image, 
                 styleBlock={{padding: '2px 5px'}} 
                 textStyle={{fontWeight: 500}} 
                 inBlock={!!image}/> 
-            {/* {isHover &&  */}
-            <div onClick={()=> onClick(id)}>
-                <Icon name='close' color={color} isClick style={iconStyle}/>
+            <div onClick={()=> onClick?.(id)}>
+                <Icon name={iconName} color={color} isClick style={iconStyle}/>
             </div>
-            {/* // } */}
         </div>
     )
 }

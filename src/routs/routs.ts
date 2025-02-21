@@ -29,6 +29,9 @@ export const GetAllTrack = async (): Promise<TrackData[]> => {
     return await fetchData();
 };
 
+// переключатель языка
+// полноэкранный режим
+
 interface Tags {
     id: number;
     name: string;
