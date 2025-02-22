@@ -78,7 +78,58 @@ export const GetTagsByAuthorId = async ({ id }: GetTagsByIdProps): Promise<Tags[
     };
   
     return await fetchData();
+};
+
+interface TrackTagProps {
+  track_id: number;
+  tag_id: number;
+  user_id: number;
+}
+
+export const AddTrackTag = async ({ track_id, tag_id, user_id }: TrackTagProps): Promise<{ message: string }> => {
+  const fetchData = async (): Promise<{ message: string }> => {
+    try {
+      const response = await axios.post('http://y91326yd.beget.tech/trackTags', {
+        track_id,
+        tag_id,
+        user_id,
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error({ error: true, message: error.message });
+      } else {
+        console.error({ error: true, message: 'An unknown error occurred' });
+      }
+      return { message: 'Failed to add track tag' };
+    }
   };
+
+  return await fetchData();
+};
+
+export const DeleteTrackTag = async ({ track_id, tag_id, user_id }: TrackTagProps): Promise<{ message: string }> => {
+    const fetchData = async (): Promise<{ message: string }> => {
+      try {
+        const response = await axios.post('http://y91326yd.beget.tech/trackTags/delete', {
+          track_id,
+          tag_id,
+          user_id,
+        });
+        return response.data;
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error({ error: true, message: error.message });
+        } else {
+          console.error({ error: true, message: 'An unknown error occurred' });
+        }
+        return { message: 'Failed to delete track tag' };
+      }
+    };
+  
+    return await fetchData();
+};
+
 
 // export const DelTagsById = async ({ id }: GetTagsByIdProps): Promise<Tags[]> => {
 //     const fetchData = async (): Promise<Tags[]> => {

@@ -42,7 +42,6 @@ export const TrackPage: React.FC = () => {
 
     useEffect(()=>{
         setIsFavorite(trackData?.isLike);
-        console.log(containers[0])
     },[trackData?.isLike])
 
     if (!trackData) {
@@ -54,7 +53,7 @@ export const TrackPage: React.FC = () => {
 
     return (
         <div className="defoult-page">
-            <div className="track-page" style={trackData.background_img?{background: `url(${trackData.background_img}) center center / cover`, height: bgHeight, justifyContent: contentPosition}:{backgroundColor: trackData.color}}>
+            <div className="track-page" style={trackData.background_img?{background: `url(${trackData.background_img}) center center / cover`, height: bgHeight, justifyContent: contentPosition}:{backgroundColor: trackData.color, height: bgHeight, justifyContent: contentPosition}}>
             <div style={{display: 'flex', flexDirection: 'row'}}>
                 <div style={{background: `url(${trackData.cover}) center center / cover`, width: 300, height: 300, position: 'relative', bottom: 0, pointerEvents: 'all'}} onClick={()=>setFullScreen((e)=>!e)}/>
                 <div style={{display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', marginLeft: 20}}>

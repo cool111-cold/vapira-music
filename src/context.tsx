@@ -20,6 +20,7 @@ interface MyContextType {
     trackIndex: number;
     setTrackIndex: React.Dispatch<React.SetStateAction<number>>;
     GetFullTrack: (id: string) => TrackData | undefined;
+    userIndex: number;
 }
 
 const MyContext = createContext<MyContextType | undefined>(undefined);
@@ -51,14 +52,15 @@ export const MyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
 
 
-    const [trackIndex, setTrackIndex] = useState(1);
+    const [trackIndex, setTrackIndex] = useState(0);
+    const [userIndex, setUserIndex] = useState(1);
 
     const GetFullTrack = (id: string): TrackData | undefined => {
         return trackList.find((item) => item.id === id);
     };
 
     return (
-        <MyContext.Provider value={{ langue, setLangue, trackList, trackIndex, setTrackIndex, GetFullTrack }}>
+        <MyContext.Provider value={{ langue, setLangue, trackList, trackIndex, setTrackIndex, GetFullTrack, userIndex }}>
             {children}
         </MyContext.Provider>
     );
