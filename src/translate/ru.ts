@@ -6,7 +6,10 @@ export const RU = {
     "tags": "теги",
     "setting": "настройки",
     "prev": "предыдущий",
-    "next": "следующий"
+    "next": "следующий",
+    'Home': 'Главная',
+    'Tags': 'Теги',
+    'find': 'Поиск'
 }
 
 export type RUKeys = keyof typeof RU;

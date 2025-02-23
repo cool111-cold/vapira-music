@@ -1,4 +1,7 @@
 import React, { CSSProperties, useState } from "react";
+import { useMyContext } from "../../context";
+import { RU, RUKeys } from "../../translate";
+
 
 interface InputProps {
     type?: 'text' | 'range';
@@ -10,12 +13,13 @@ interface InputProps {
 
 export const Input: React.FC<InputProps> = ({
     type = 'text',
-    placeholder,
+    placeholder = 'find',
     style,
     initialValue = '',
     onChange
 }) => {
     const [content, setContent] = useState<string>(initialValue);
+    const { langue } = useMyContext();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
@@ -25,11 +29,19 @@ export const Input: React.FC<InputProps> = ({
         }
     };
 
+    const translateText = (txt: string): string => {
+            if (langue == "RU") {
+                return RU[txt as RUKeys] || txt;
+            }else{
+                return txt;
+            }
+        }
+
     return (
         <input
             type={type}
             style={style}
-            placeholder={placeholder}
+            placeholder={translateText(placeholder) + '...'}
             value={content}
             onChange={handleChange}
         />

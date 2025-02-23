@@ -83,12 +83,11 @@ export const TagsTable: React.FC<TagsTableProps> = ({ id }) => {
         gap: 10,
         marginTop: 16,
         width: "100%",
-        flexWrap: 'wrap'
     };
 
     return (
         <div style={{ width: "100%" }}>
-            <div style={blockStyle}>
+            <div style={{...blockStyle, flexWrap: 'wrap'}}>
                 {tags.map((item) => (
                     <TagContainer
                         key={item.id}

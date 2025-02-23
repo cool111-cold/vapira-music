@@ -58,7 +58,7 @@ export const AddTag: React.FC<AddTagProps> = ({ style, result, content, onAddTag
 
     return (
         <div style={style}>
-            <Input style={inputStyle} placeholder="find..." onChange={setFind} />
+            <Input style={inputStyle} onChange={setFind} />
             <div style={resultStyle}>
                 <div style={resultStyleContainer}>
                     {content?.map((item, index) => (
