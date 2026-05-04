@@ -32,7 +32,6 @@ const AudioPlayer: React.FC<Props> = ({ trackId, currentTime, setCurrentTime }) 
 
   useEffect(() => {
     fetchAudio();
-    // Очистка URL объекта при размонтировании компонента
     return () => {
       if (audioSrc) {
         URL.revokeObjectURL(audioSrc);

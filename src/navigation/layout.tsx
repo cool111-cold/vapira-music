@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "../components/header/header";
 import { Player } from "../components/player";
+import { PlayerTwo } from "../components/player/player-two";
 import { MyProvider } from "../context";
 
 export const Layout = () => {
@@ -10,7 +11,7 @@ export const Layout = () => {
         <MyProvider>
             <Header/>
             <Outlet/>
-            <Player/>
+            <PlayerTwo/>
         </MyProvider>
     </div>
     );

@@ -37,4 +37,5 @@ export type IconType = {
     color?: string;
     isClick?: boolean;
     active?: boolean;
+    hoverColor?: string;
 }
