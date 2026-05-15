@@ -7,7 +7,9 @@ import RightArrowIcon from '../../media/icons/right-arrow.svg';
 import LeftArrowIcon from '../../media/icons/left-arrow.svg'
 import Arrow from '../../media/icons/arrow.svg';
 import { useState, useEffect, useRef } from 'react';
+
 import './index.css';
+import { PlayerTwo } from '../../components/player/player-two';
 
 const SPACING = 0.17;
 // scales: center=0.022, ±1=0.015, ±2=0.012, off=0.005
@@ -353,6 +355,7 @@ export const VinylPage = () => {
     }, []);
     return (
         <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            <PlayerTwo top />
             {/* Canvas wrapper with zIndex: 2 so records stay above the red overlay (zIndex: 1) */}
             <div style={{ flex: 1, position: 'relative', zIndex: 2 }}>
                 <Canvas

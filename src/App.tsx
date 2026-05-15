@@ -1,20 +1,17 @@
-import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import Model from './Model';
-import Record from './Record';
 import VinylTransport from './VinylTransport';
 import { VinylPage } from './pages/vinyl';
-// '#b7b7b7'
-// #421111
+import { AudioProvider } from './context/audio-context';
+import { MyProvider } from './context';
+import { PlayerTwo } from './components/player/player-two';
 
 function PlayerScene() {
-  const [turntablePos, setTurntablePos] = useState<THREE.Vector3 | null>(null);
-
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: '#b7b7b7', display: 'flex' }}>
+      <PlayerTwo top />
       <Canvas
         shadows
         camera={{ zoom: 3, position: [0, 10, 0], up: [0, 0, -1], fov: 45 }}
@@ -38,32 +35,23 @@ function PlayerScene() {
           shadow-camera-top={5}
           shadow-camera-bottom={-5}
         />
-        <VinylTransport position={[0, 0, 0]} scale={5} click={() => console.log('clicked')} centerImageUrl={"https://static.insales-cdn.com/r/itZPHiUfev0/rs:fit:296:0:1/q:80/plain/images/products/1/14/242049038/large_tyler-the-creator-igor-cd2.jpg@jpg"} />  
-        {/* <Model onTurntableReady={setTurntablePos} />
-        {turntablePos && (
-          <Record position={new THREE.Vector3(turntablePos.x, turntablePos.y + 0.06, turntablePos.z)} />
-        )} */}
+        <VinylTransport
+          position={[0, 0, 0]}
+          scale={5}
+          click={() => console.log('clicked')}
+          centerImageUrl="https://static.insales-cdn.com/r/itZPHiUfev0/rs:fit:296:0:1/q:80/plain/images/products/1/14/242049038/large_tyler-the-creator-igor-cd2.jpg@jpg"
+        />
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -1]} receiveShadow>
           <planeGeometry args={[40, 40]} />
           <shadowMaterial opacity={0.2} />
         </mesh>
         <OrbitControls makeDefault enableRotate={false} enablePan={false} />
       </Canvas>
-        {/*
-        #431d1db3
-        #513f3fb3
-
-        '#98989857'
-        #ffffff57
-         */}
-      {/* <div style={{width: 400, height: 500, backgroundColor: '#431d1db3', borderTop: '1px solid #513f3fb3', borderBottom: '1px solid #513f3fb3', borderLeft: '2px solid #513f3fb3', borderRight: '2px solid #513f3fb3', borderRadius: 30, position: 'absolute', right: 120, top: 120}}>
-
-      </div> */}
       <Link
         to="/vinyl"
         style={{
           position: 'absolute',
-          top: 24,
+          bottom: 24,
           left: 24,
           padding: '8px 16px',
           backgroundColor: '#431d1db3',
@@ -81,11 +69,15 @@ function PlayerScene() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<PlayerScene />} />
-        <Route path="/vinyl" element={<VinylPage />} />
-      </Routes>
-    </BrowserRouter>
+    <AudioProvider>
+      <MyProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<PlayerScene />} />
+            <Route path="/vinyl" element={<VinylPage />} />
+          </Routes>
+        </BrowserRouter>
+      </MyProvider>
+    </AudioProvider>
   );
 }
