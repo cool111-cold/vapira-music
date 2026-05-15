@@ -38,6 +38,7 @@ interface AudioContextType {
     currentTrack: Track | null;
     isPlaying: boolean;
     currentTime: number; // 0–100 percent
+    durationSec: number; // total duration in seconds
     collapsed: boolean;
     setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
     toggle: () => void;
@@ -53,6 +54,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [trackIndex, setTrackIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
+    const [durationSec, setDurationSec] = useState(0);
     const [collapsed, setCollapsed] = useState(false);
 
     const howlRef = useRef<Howl | null>(null);
@@ -79,6 +81,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         setCurrentTime(0);
+        setDurationSec(0);
         trackIndexRef.current = index;
 
         const track = LOCAL_TRACKS[index];
@@ -88,13 +91,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             src: [track.src],
             html5: true,
             autoplay,
+            onload: () => {
+                const dur = howlRef.current?.duration() ?? 0;
+                setDurationSec(dur);
+            },
             onplay: () => {
                 setIsPlaying(true);
+                const dur = howlRef.current?.duration() ?? 0;
+                if (dur > 0) setDurationSec(dur);
                 intervalRef.current = setInterval(() => {
                     if (howlRef.current?.playing()) {
-                        const dur = howlRef.current.duration();
+                        const d = howlRef.current.duration();
                         const pos = howlRef.current.seek() as number;
-                        if (dur > 0) setCurrentTime((pos / dur) * 100);
+                        if (d > 0) setCurrentTime((pos / d) * 100);
                     }
                 }, 500);
             },
@@ -170,6 +179,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 currentTrack: LOCAL_TRACKS[trackIndex] ?? null,
                 isPlaying,
                 currentTime,
+                durationSec,
                 collapsed,
                 setCollapsed,
                 toggle,
