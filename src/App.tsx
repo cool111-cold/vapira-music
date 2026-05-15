@@ -5,6 +5,7 @@ import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import Model from './Model';
 import Record from './Record';
+import VinylTransport from './VinylTransport';
 import { VinylPage } from './pages/vinyl';
 // '#b7b7b7'
 // #421111
@@ -24,6 +25,7 @@ function PlayerScene() {
         }}
       >
         <Environment preset='park' />
+        <ambientLight intensity={8} />
         <directionalLight
           position={[3, 6, -4]}
           intensity={2.5}
@@ -36,10 +38,11 @@ function PlayerScene() {
           shadow-camera-top={5}
           shadow-camera-bottom={-5}
         />
-        <Model onTurntableReady={setTurntablePos} />
+        <VinylTransport position={[0, 0, 0]} scale={5} click={() => console.log('clicked')} centerImageUrl={"https://static.insales-cdn.com/r/itZPHiUfev0/rs:fit:296:0:1/q:80/plain/images/products/1/14/242049038/large_tyler-the-creator-igor-cd2.jpg@jpg"} />  
+        {/* <Model onTurntableReady={setTurntablePos} />
         {turntablePos && (
           <Record position={new THREE.Vector3(turntablePos.x, turntablePos.y + 0.06, turntablePos.z)} />
-        )}
+        )} */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -1]} receiveShadow>
           <planeGeometry args={[40, 40]} />
           <shadowMaterial opacity={0.2} />

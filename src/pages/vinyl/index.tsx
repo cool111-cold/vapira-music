@@ -7,6 +7,7 @@ import RightArrowIcon from '../../media/icons/right-arrow.svg';
 import LeftArrowIcon from '../../media/icons/left-arrow.svg'
 import Arrow from '../../media/icons/arrow.svg';
 import { useState, useEffect, useRef } from 'react';
+import './index.css';
 
 const SPACING = 0.17;
 // scales: center=0.022, ±1=0.015, ±2=0.012, off=0.005
@@ -373,13 +374,15 @@ export const VinylPage = () => {
             </div>
             <SlideBackground counter={counter} />
 
-            {/* Overlay: mask = прозрачный круг в центре сжимается к нулю → фон заполняется от краёв к центру */}
-            <div style={{display: 'flex', alignItems: 'center', flexDirection: 'column', justifyContent: 'center', width: '100vw', height: '100vh', backgroundColor: VYNYL[counter - 1].secondColor, zIndex: 1, position: 'absolute', top: 0, left: 0, '--circle-radius': openCover ? '0%' : '150%', WebkitMaskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', maskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', transition: '--circle-radius 0.7s ease', pointerEvents: openCover ? 'auto' : 'none'} as React.CSSProperties}>
-                <div style={{display: 'flex', flexDirection: 'column', marginLeft: '45vw', width: '40vw'}}>
+            {/* Overlay: только фон с mask-анимацией, без контента */}
+            <div style={{width: '100vw', height: '100vh', backgroundColor: VYNYL[counter - 1].secondColor, zIndex: 1, position: 'absolute', top: 0, left: 0, '--circle-radius': openCover ? '0%' : '150%', WebkitMaskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', maskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', transition: '--circle-radius 0.7s ease', pointerEvents: 'none'} as React.CSSProperties} />
+            {/* Контент поверх canvas с той же mask-анимацией */}
+            <div style={{display: 'flex', alignItems: 'center', flexDirection: 'column', justifyContent: 'center', width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 10, pointerEvents: 'none', '--circle-radius': openCover ? '0%' : '150%', WebkitMaskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', maskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', transition: '--circle-radius 0.7s ease'} as React.CSSProperties}>
+                <div style={{display: 'flex', flexDirection: 'column', marginLeft: '45vw', width: '40vw', pointerEvents: openCover ? 'auto' : 'none'}}>
                     <p style={{fontWeight: 700, fontSize: '2.5rem', color: '#fff'}}>IGOR</p>
                     <p style={{fontWeight: 700, fontSize: '2.5rem', color: '#fff'}}>TYLER THE CREATOR</p>
                     <p style={{fontWeight: 500, fontSize: '1rem', color: VYNYL[counter -1].bgColor, marginTop: '1rem'}}>Igor (stylized in all caps) is the sixth studio album by the American rapper and producer Tyler, the Creator, released on May 17, 2019, through Columbia Records. Produced solely by Tyler himself, the album features guest appearances from Playboi Carti, Lil Uzi Vert, Solange, Kanye West, and Jerrod Carmichael. </p>
-                    <button style={{border: '1px solid #fff', backgroundColor: 'transparent', padding: '0.5rem 1.5rem 0.5rem 1.5rem', color: '#fff', width: 'min-content', marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12}}>PURCHASE <img src={Arrow}/></button>
+                    <button className="purchase-btn">PURCHASE <img src={Arrow}/></button>
                 </div>
             </div>
 
