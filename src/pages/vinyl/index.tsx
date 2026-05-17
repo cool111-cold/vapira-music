@@ -23,7 +23,16 @@ interface Vynyl {
     videoCover: string
 }
 
-const VYNYL = [{
+const VYNYL = [
+    {
+        bgColor: '#edebe0',
+        diskImage: 'https://images.genius.com/5177ba40803e161a6caf4860718411a2.673x803x1.jpg',
+        name: 'DEATHCONSCIOUSNESS',
+        secondColor: '#453d1c',
+        cover: 'https://images.genius.com/5177ba40803e161a6caf4860718411a2.673x803x1.jpg',
+        videoCover: 'https://i.pinimg.com/originals/cd/81/d6/cd81d69063bf26900c20c62cc2ca3cb6.gif'
+    },
+    {
         bgColor: '#f8b3c6',
         diskImage: 'https://static.insales-cdn.com/r/itZPHiUfev0/rs:fit:296:0:1/q:80/plain/images/products/1/14/242049038/large_tyler-the-creator-igor-cd2.jpg@jpg',
         name: 'IGOR',
@@ -382,9 +391,9 @@ export const VinylPage = () => {
             {/* Контент поверх canvas с той же mask-анимацией */}
             <div style={{display: 'flex', alignItems: 'center', flexDirection: 'column', justifyContent: 'center', width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 10, pointerEvents: 'none', '--circle-radius': openCover ? '0%' : '150%', WebkitMaskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', maskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))', transition: '--circle-radius 0.7s ease'} as React.CSSProperties}>
                 <div style={{display: 'flex', flexDirection: 'column', marginLeft: '45vw', width: '40vw', pointerEvents: openCover ? 'auto' : 'none'}}>
-                    <p style={{fontWeight: 700, fontSize: '2.5rem', color: '#fff'}}>IGOR</p>
-                    <p style={{fontWeight: 700, fontSize: '2.5rem', color: '#fff'}}>TYLER THE CREATOR</p>
-                    <p style={{fontWeight: 500, fontSize: '1rem', color: VYNYL[counter -1].bgColor, marginTop: '1rem'}}>Igor (stylized in all caps) is the sixth studio album by the American rapper and producer Tyler, the Creator, released on May 17, 2019, through Columbia Records. Produced solely by Tyler himself, the album features guest appearances from Playboi Carti, Lil Uzi Vert, Solange, Kanye West, and Jerrod Carmichael. </p>
+                    <p style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '2.5rem', color: '#fff'}}>deathconsciousness</p>
+                    <p style={{fontWeight: 700, textTransform: 'uppercase', fontSize: '2.5rem', color: '#fff'}}>have a nice life</p>
+                    <p style={{fontWeight: 500, fontSize: '1rem', color: VYNYL[counter -1].bgColor, marginTop: '1rem'}}>Deathconsciousness is the debut studio album by the American rock duo Have a Nice Life, released on January 24, 2008, through Enemies List Home Recordings. It is a shoegaze and post-punk album characterized by a lo-fi production, dense soundscapes, and lyrics exploring themes such as death, depression, and existential despair. </p>
                     <button className="purchase-btn">PURCHASE <img src={Arrow}/></button>
                 </div>
             </div>

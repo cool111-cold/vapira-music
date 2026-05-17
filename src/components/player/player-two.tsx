@@ -87,7 +87,7 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                                     width: 48,
                                     height: 48,
                                     background: `url(${currentTrack.cover}) center center / cover`,
-                                    borderRadius: 4,
+                                    borderRadius: 2,
                                     flexShrink: 0,
                                 }}
                             />

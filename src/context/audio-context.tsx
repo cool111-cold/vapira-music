@@ -16,22 +16,6 @@ export interface Track {
     cover?: string;
 }
 
-// Temporary local tracks — will be replaced with API data
-const LOCAL_TRACKS: Track[] = [
-    {
-        id: '1',
-        name: 'Audio Vocals',
-        artist: 'Vapira',
-        src: '/music/audio-vocals.mp3',
-    },
-    {
-        id: '2',
-        name: 'Audio Music',
-        artist: 'Vapira',
-        src: '/music/audio-music.mp3',
-    },
-];
-
 interface AudioContextType {
     tracks: Track[];
     trackIndex: number;
@@ -51,6 +35,7 @@ interface AudioContextType {
 const AudioCtx = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [tracks, setTracks] = useState<Track[]>([]);
     const [trackIndex, setTrackIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -84,7 +69,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setDurationSec(0);
         trackIndexRef.current = index;
 
-        const track = LOCAL_TRACKS[index];
+        const track = tracks[index];
         if (!track) return;
 
         howlRef.current = new Howl({
@@ -119,7 +104,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 setIsPlaying(false);
                 stopInterval();
                 const next = trackIndexRef.current + 1;
-                if (next < LOCAL_TRACKS.length) {
+                if (next < tracks.length) {
                     setTrackIndex(next);
                     loadTrackRef.current(next, true);
                 }
@@ -129,15 +114,31 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (autoplay) howlRef.current.play();
     };
 
-    // Load first track silently on mount; clean up on unmount.
     useEffect(() => {
+        fetch('https://vapira.ru/tracks')
+            .then((r) => r.json())
+            .then((data) =>
+                data.map((t: { id: number; title: string; artist: string; avatar_url?: string; stream_url: string }) => ({
+                    id: String(t.id),
+                    name: t.title,
+                    artist: t.artist,
+                    cover: t.avatar_url,
+                    src: `https://vapira.ru${t.stream_url}`,
+                }))
+            )
+            .then(setTracks);
+    }, []);
+
+    // Load first track silently once tracks arrive; clean up on unmount.
+    useEffect(() => {
+        if (tracks.length === 0) return;
         loadTrackRef.current(0, false);
         return () => {
             stopInterval();
             howlRef.current?.unload();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [tracks]);
 
     const toggle = useCallback(() => {
         const h = howlRef.current;
@@ -162,9 +163,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }, []);
 
     const next = useCallback(() => {
-        if (trackIndexRef.current < LOCAL_TRACKS.length - 1)
+        if (trackIndexRef.current < tracks.length - 1)
             playTrack(trackIndexRef.current + 1);
-    }, [playTrack]);
+    }, [playTrack, tracks.length]);
 
     const prev = useCallback(() => {
         if (trackIndexRef.current > 0)
@@ -174,9 +175,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return (
         <AudioCtx.Provider
             value={{
-                tracks: LOCAL_TRACKS,
+                tracks,
                 trackIndex,
-                currentTrack: LOCAL_TRACKS[trackIndex] ?? null,
+                currentTrack: tracks[trackIndex] ?? null,
                 isPlaying,
                 currentTime,
                 durationSec,

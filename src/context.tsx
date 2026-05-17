@@ -40,14 +40,14 @@ export const MyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
         }]);
     
 
-    useEffect(() => {
-        const fetchTracks = async () => {
-            const data = await GetAllTrack();
-            setTrackList(data);
-        };
+    // useEffect(() => {
+    //     const fetchTracks = async () => {
+    //         const data = await GetAllTrack();
+    //         setTrackList(data);
+    //     };
 
-        fetchTracks();
-    }, []);
+    //     fetchTracks();
+    // }, []);
 
 
 
