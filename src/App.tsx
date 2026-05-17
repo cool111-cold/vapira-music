@@ -7,6 +7,7 @@ import { VinylPage } from './pages/vinyl';
 import { AudioProvider } from './context/audio-context';
 import { MyProvider } from './context';
 import { PlayerTwo } from './components/player/player-two';
+import { UploadPage } from './pages/upload';
 
 function PlayerScene() {
   return (
@@ -75,6 +76,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<PlayerScene />} />
             <Route path="/vinyl" element={<VinylPage />} />
+            <Route path="/upload" element={<UploadPage />} />
           </Routes>
         </BrowserRouter>
       </MyProvider>

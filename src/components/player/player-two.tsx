@@ -1,6 +1,33 @@
+import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../icon';
 import { Text } from '../text';
 import { useAudioPlayer } from '../../context/audio-context';
+
+const NavButton = ({ path, children }: { path: string; children: React.ReactNode }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const active = location.pathname === path;
+    return (
+        <button
+            onClick={() => navigate(path)}
+            style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 3,
+                padding: '2px 8px',
+                opacity: active ? 1 : 0.45,
+                transition: 'opacity 0.2s',
+            }}
+        >
+            {children}
+        </button>
+    );
+};
 
 const formatTime = (seconds: number): string => {
     const s = Math.floor(seconds);
@@ -163,6 +190,26 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                         <span style={{ color: '#8D8D8D', fontSize: 12, flexShrink: 0, minWidth: 32 }}>
                             {formatTime(durationSec)}
                         </span>
+                    </div>
+
+                    {/* Navigation */}
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <NavButton path="/">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 9.41605C3 9.04665 3.18802 8.7001 3.50457 8.48603L11.3046 3.21117C11.7209 2.92961 12.2791 2.92961 12.6954 3.21117L20.4954 8.48603C20.812 8.70011 21 9.04665 21 9.41605V19.2882C21 20.2336 20.1941 21 19.2 21H4.8C3.80589 21 3 20.2336 3 19.2882V9.41605Z" stroke="white" strokeWidth="2"/>
+                            </svg>
+                        </NavButton>
+                        <NavButton path="/vinyl">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M21.5999 11.9999C21.5999 17.3018 17.3018 21.5999 11.9999 21.5999C6.69797 21.5999 2.3999 17.3018 2.3999 11.9999C2.3999 6.69797 6.69797 2.3999 11.9999 2.3999C17.3018 2.3999 21.5999 6.69797 21.5999 11.9999Z" stroke="white" strokeWidth="2"/>
+                                <path d="M14.3999 11.9999C14.3999 13.3254 13.3254 14.3999 11.9999 14.3999C10.6744 14.3999 9.5999 13.3254 9.5999 11.9999C9.5999 10.6744 10.6744 9.5999 11.9999 9.5999C13.3254 9.5999 14.3999 10.6744 14.3999 11.9999Z" stroke="white" strokeWidth="2"/>
+                            </svg>
+                        </NavButton>
+                        <NavButton path="/upload">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5.9999 10.9667L11.9999 16.8L17.9999 10.9667M11.9999 16.8L11.9999 2.40002M2.3999 21.6H21.5999" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                        </NavButton>
                     </div>
                 </div>
             </div>
