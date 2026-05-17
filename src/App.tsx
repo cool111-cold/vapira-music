@@ -11,6 +11,10 @@ import { MyProvider } from './context';
 import { PlayerTwo } from './components/player/player-two';
 import { UploadPage } from './pages/upload';
 import { AuthPage } from './pages/auth';
+import { LibraryPage } from './pages/library';
+import { TracksPage } from './pages/library/tracks';
+import { SavedPage } from './pages/library/saved';
+import { SearchPage } from './pages/library/search';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { token } = useAuth();
@@ -71,6 +75,10 @@ export default function App() {
               <Route path="/" element={<ProtectedRoute><PlayerScene /></ProtectedRoute>} />
               <Route path="/vinyl" element={<ProtectedRoute><VinylPage /></ProtectedRoute>} />
               <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+              <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+              <Route path="/tracks" element={<ProtectedRoute><TracksPage /></ProtectedRoute>} />
+              <Route path="/saved" element={<ProtectedRoute><SavedPage /></ProtectedRoute>} />
+              <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
             </Routes>
           </BrowserRouter>
         </MyProvider>

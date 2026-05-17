@@ -213,6 +213,11 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                                 <path d="M5.9999 10.9667L11.9999 16.8L17.9999 10.9667M11.9999 16.8L11.9999 2.40002M2.3999 21.6H21.5999" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                         </NavButton>
+                        <NavButton path="/library">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6H20M4 12H20M4 18H14" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                        </NavButton>
 
                         {/* User / logout */}
                         <button
