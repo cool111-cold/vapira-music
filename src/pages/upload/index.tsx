@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { PlayerTwo } from '../../components/player/player-two'
+import { useAuth } from '../../context/auth-context'
 
 async function uploadTrack(formData: {
     title: string
     artist: string
     avatar_url: string
     file: File
+    token: string
 }) {
     const form = new FormData()
     form.append('title', formData.title)
@@ -15,6 +17,7 @@ async function uploadTrack(formData: {
 
     const res = await fetch('https://vapira.ru/tracks', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${formData.token}` },
         body: form,
     })
     return res.json()
@@ -51,6 +54,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 type Status = 'idle' | 'loading' | 'success' | 'error'
 
 export const UploadPage = () => {
+    const { token } = useAuth()
     const [title, setTitle] = useState('')
     const [artist, setArtist] = useState('')
     const [avatarUrl, setAvatarUrl] = useState('')
@@ -62,11 +66,11 @@ export const UploadPage = () => {
     const ready = title.trim() && artist.trim() && avatarUrl.trim() && file
 
     const handleSubmit = async () => {
-        if (!ready) return
+        if (!ready || !token) return
         setStatus('loading')
         setErrorMsg('')
         try {
-            await uploadTrack({ title, artist, avatar_url: avatarUrl, file: file! })
+            await uploadTrack({ title, artist, avatar_url: avatarUrl, file: file!, token })
             setStatus('success')
             setTitle('')
             setArtist('')

@@ -7,6 +7,7 @@ import React, {
     useRef,
     useState,
 } from 'react';
+import { useAuth } from './auth-context';
 
 export interface Track {
     id: string;
@@ -35,6 +36,7 @@ interface AudioContextType {
 const AudioCtx = createContext<AudioContextType | undefined>(undefined);
 
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { token } = useAuth();
     const [tracks, setTracks] = useState<Track[]>([]);
     const [trackIndex, setTrackIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -115,7 +117,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     useEffect(() => {
-        fetch('https://vapira.ru/tracks')
+        if (!token) { setTracks([]); return; }
+        fetch('https://vapira.ru/tracks', {
+            headers: { Authorization: `Bearer ${token}` },
+        })
             .then((r) => r.json())
             .then((data) =>
                 data.map((t: { id: number; title: string; artist: string; avatar_url?: string; stream_url: string }) => ({
@@ -127,7 +132,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 }))
             )
             .then(setTracks);
-    }, []);
+    }, [token]);
 
     // Load first track silently once tracks arrive; clean up on unmount.
     useEffect(() => {

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../icon';
 import { Text } from '../text';
 import { useAudioPlayer } from '../../context/audio-context';
+import { useAuth } from '../../context/auth-context';
 
 const NavButton = ({ path, children }: { path: string; children: React.ReactNode }) => {
     const navigate = useNavigate();
@@ -38,6 +39,8 @@ const formatTime = (seconds: number): string => {
 
 export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
     const { currentTrack, isPlaying, currentTime, durationSec, collapsed, setCollapsed, toggle, seek, next, prev } = useAudioPlayer();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
         seek(Number(e.target.value));
@@ -210,6 +213,29 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                                 <path d="M5.9999 10.9667L11.9999 16.8L17.9999 10.9667M11.9999 16.8L11.9999 2.40002M2.3999 21.6H21.5999" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                         </NavButton>
+
+                        {/* User / logout */}
+                        <button
+                            onClick={() => { logout(); navigate('/login'); }}
+                            title={user?.name ?? user?.email ?? 'выйти'}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '2px 8px',
+                                opacity: 0.45,
+                                transition: 'opacity 0.2s',
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                            onMouseLeave={e => (e.currentTarget.style.opacity = '0.45')}
+                        >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="2"/>
+                                <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>

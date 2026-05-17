@@ -1,17 +1,25 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import VinylTransport from './VinylTransport';
 import { VinylPage } from './pages/vinyl';
 import { AudioProvider } from './context/audio-context';
+import { AuthProvider, useAuth } from './context/auth-context';
 import { MyProvider } from './context';
 import { PlayerTwo } from './components/player/player-two';
 import { UploadPage } from './pages/upload';
+import { AuthPage } from './pages/auth';
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    const { token } = useAuth();
+    return token ? <>{children}</> : <Navigate to="/login" replace />;
+};
 
 function PlayerScene() {
   return (
-    <div style={{ width: '100vw', height: '100vh', backgroundColor: '#b7b7b7', display: 'flex' }}>
+    <div style={{ width: '100vw', height: '100vh', backgroundColor: '#222222', display: 'flex' }}>
       <PlayerTwo top />
       <Canvas
         shadows
@@ -48,38 +56,25 @@ function PlayerScene() {
         </mesh>
         <OrbitControls makeDefault enableRotate={false} enablePan={false} />
       </Canvas>
-      <Link
-        to="/vinyl"
-        style={{
-          position: 'absolute',
-          bottom: 24,
-          left: 24,
-          padding: '8px 16px',
-          backgroundColor: '#431d1db3',
-          color: '#fff',
-          borderRadius: 8,
-          textDecoration: 'none',
-          border: '1px solid #513f3fb3',
-        }}
-      >
-        Vinyl
-      </Link>
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AudioProvider>
-      <MyProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<PlayerScene />} />
-            <Route path="/vinyl" element={<VinylPage />} />
-            <Route path="/upload" element={<UploadPage />} />
-          </Routes>
-        </BrowserRouter>
-      </MyProvider>
-    </AudioProvider>
+    <AuthProvider>
+      <AudioProvider>
+        <MyProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/" element={<ProtectedRoute><PlayerScene /></ProtectedRoute>} />
+              <Route path="/vinyl" element={<ProtectedRoute><VinylPage /></ProtectedRoute>} />
+              <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+            </Routes>
+          </BrowserRouter>
+        </MyProvider>
+      </AudioProvider>
+    </AuthProvider>
   );
 }
