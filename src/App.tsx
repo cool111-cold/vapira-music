@@ -15,6 +15,7 @@ import { LibraryPage } from './pages/library';
 import { TracksPage } from './pages/library/tracks';
 import { SavedPage } from './pages/library/saved';
 import { SearchPage } from './pages/library/search';
+import { VinylsPage } from './pages/library/vinyls';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { token } = useAuth();
@@ -79,6 +80,7 @@ export default function App() {
               <Route path="/tracks" element={<ProtectedRoute><TracksPage /></ProtectedRoute>} />
               <Route path="/saved" element={<ProtectedRoute><SavedPage /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+              <Route path="/vinyls" element={<ProtectedRoute><VinylsPage /></ProtectedRoute>} />
             </Routes>
           </BrowserRouter>
         </MyProvider>

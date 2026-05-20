@@ -20,6 +20,7 @@ export const LibNav = () => (
         <NavLink to="/library" end style={({ isActive }) => tabStyle(isActive)}>All</NavLink>
         <NavLink to="/tracks" style={({ isActive }) => tabStyle(isActive)}>Uploaded</NavLink>
         <NavLink to="/saved" style={({ isActive }) => tabStyle(isActive)}>Saved</NavLink>
+        <NavLink to="/vinyls" style={({ isActive }) => tabStyle(isActive)}>Vinyls</NavLink>
         <NavLink to="/search" style={({ isActive }) => tabStyle(isActive)}>Search</NavLink>
     </nav>
 )

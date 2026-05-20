@@ -8,6 +8,7 @@ import { LibraryPage } from "../pages/library";
 import { TracksPage } from "../pages/library/tracks";
 import { SavedPage } from "../pages/library/saved";
 import { SearchPage } from "../pages/library/search";
+import { VinylsPage } from "../pages/library/vinyls";
 
 export const routes = createBrowserRouter([
     {
@@ -19,6 +20,7 @@ export const routes = createBrowserRouter([
             { path: "/library", Component: LibraryPage },
             { path: "/tracks", Component: TracksPage },
             { path: "/saved", Component: SavedPage },
+            { path: "/vinyls", Component: VinylsPage },
             { path: "/search", Component: SearchPage },
         ],
     },
