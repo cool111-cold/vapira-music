@@ -4,6 +4,20 @@ interface User {
     id: string;
     email: string;
     name?: string;
+    avatar_url?: string;
+    bg_image_url?: string;
+    favorite_track_id?: number | null;
+    favorite_vinyl_id?: number | null;
+}
+
+export interface UserUpdate {
+    name?: string;
+    email?: string;
+    password?: string;
+    avatar_url?: string;
+    bg_image_url?: string;
+    favorite_track_id?: number | null;
+    favorite_vinyl_id?: number | null;
 }
 
 interface AuthContextType {
@@ -12,6 +26,7 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     register: (name: string, email: string, password: string) => Promise<void>;
     logout: () => void;
+    updateUser: (data: UserUpdate) => Promise<void>;
 }
 
 const AuthCtx = createContext<AuthContextType | undefined>(undefined);
@@ -63,8 +78,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
     };
 
+    const updateUser = async (data: UserUpdate) => {
+        if (!token) throw new Error('Not authenticated');
+        const res = await fetch('https://vapira.ru/auth/me', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error((await res.json()).detail ?? 'Ошибка обновления');
+        const updated = await res.json();
+        setUser(updated);
+    };
+
     return (
-        <AuthCtx.Provider value={{ token, user, login, register, logout }}>
+        <AuthCtx.Provider value={{ token, user, login, register, logout, updateUser }}>
             {children}
         </AuthCtx.Provider>
     );

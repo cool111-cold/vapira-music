@@ -5,15 +5,6 @@ import { PlayerTwo } from '../../components/player/player-two'
 
 const BASE = 'https://vapira.ru'
 
-interface VinylApi {
-    id: number
-    name: string
-    artist: string | null
-    description: string | null
-    bg_color: string | null
-    cover: string | null
-}
-
 interface TrackApi {
     id: number
     title: string
@@ -177,7 +168,7 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ vinylId, vinylName, exist
                                     <div style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
                                     <div style={{ color: '#666', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
                                 </div>
-                                <span style={{ color: already ? '#555' : isAdding ? '#888' : '#FD5E5E', fontSize: '1.25rem', flexShrink: 0 }}>
+                                <span style={{ color: already ? '#555' : isAdding ? '#888' : '#fff', fontSize: '1.25rem', flexShrink: 0 }}>
                                     {already ? '✓' : isAdding ? '…' : '+'}
                                 </span>
                             </div>
@@ -189,13 +180,22 @@ const AddTrackModal: React.FC<AddTrackModalProps> = ({ vinylId, vinylName, exist
     )
 }
 
+export interface VinylApi {
+    id: number
+    name: string
+    artist: string | null
+    description: string | null
+    bg_color: string | null
+    cover: string | null
+}
+
 interface VinylRowProps {
     vinyl: VinylApi
     token: string
     onDeleted: (id: number) => void
 }
 
-const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) => {
+export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) => {
     const [open, setOpen] = useState(false)
     const [tracks, setTracks] = useState<TrackApi[]>([])
     const [tracksLoaded, setTracksLoaded] = useState(false)
@@ -265,13 +265,17 @@ const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) => {
                     <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vinyl.name}</div>
                     {vinyl.artist && <div style={{ color: '#666', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vinyl.artist}</div>}
                 </div>
-                <span style={{ color: '#444', fontSize: '0.75rem', flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+                <span style={{ color: '#444', flexShrink: 0, display: 'flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M7 10L12.0008 14.58L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                </span>
                 {confirmDelete ? (
                     <>
                         <button
                             onClick={e => { e.stopPropagation(); handleDelete() }}
                             disabled={deleting}
-                            style={{ background: 'none', border: 'none', color: '#FD5E5E', cursor: deleting ? 'default' : 'pointer', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.4rem', lineHeight: 1, flexShrink: 0 }}
+                            style={{ background: 'none', border: 'none', color: '#fff', cursor: deleting ? 'default' : 'pointer', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.4rem', lineHeight: 1, flexShrink: 0 }}
                         >
                             {deleting ? '...' : 'yes'}
                         </button>
@@ -287,10 +291,12 @@ const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) => {
                         onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
                         title="delete vinyl"
                         style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem 0.5rem', lineHeight: 1, flexShrink: 0, transition: 'color 0.2s' }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#FD5E5E' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
                         onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
                     >
-                        ✕
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
                     </button>
                 )}
             </div>
@@ -313,11 +319,13 @@ const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) => {
                                 onClick={() => handleRemoveTrack(track.id)}
                                 disabled={removingId === track.id}
                                 title="remove from vinyl"
-                                style={{ background: 'none', border: 'none', color: '#444', cursor: removingId === track.id ? 'default' : 'pointer', fontSize: '1rem', padding: '0.25rem 0.4rem', lineHeight: 1, transition: 'color 0.2s' }}
-                                onMouseEnter={e => { if (removingId !== track.id) e.currentTarget.style.color = '#FD5E5E' }}
+                                style={{ background: 'none', border: 'none', color: '#444', cursor: removingId === track.id ? 'default' : 'pointer', padding: '0.25rem 0.4rem', lineHeight: 1, transition: 'color 0.2s', display: 'flex' }}
+                                onMouseEnter={e => { if (removingId !== track.id) e.currentTarget.style.color = '#fff' }}
                                 onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
                             >
-                                ✕
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
                             </button>
                         </div>
                     ))}
@@ -336,7 +344,7 @@ const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) => {
                             padding: '0.45rem 0.85rem',
                             transition: 'border-color 0.2s, color 0.2s',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#FD5E5E'; e.currentTarget.style.color = '#FD5E5E' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.color = '#fff' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa' }}
                     >
                         + add track
@@ -385,7 +393,7 @@ export const VinylsPage = () => {
                 {!loading && vinyls.length === 0 && (
                     <div>
                         <p style={{ color: '#555', fontSize: '0.875rem' }}>no vinyls yet</p>
-                        <a href="/upload" style={{ color: '#FD5E5E', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>create one →</a>
+                        <a href="/upload" style={{ color: '#fff', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>create one →</a>
                     </div>
                 )}
                 {token && vinyls.map(v => (

@@ -53,7 +53,7 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, [showVolume]);
-    const { user, logout } = useAuth();
+    useAuth();
     const { savedIds, toggleSaved } = useSaved();
     const isLiked = currentTrack ? savedIds.has(currentTrack.id) : false;
     const navigate = useNavigate();
@@ -281,7 +281,7 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                                 <path d="M14.3999 11.9999C14.3999 13.3254 13.3254 14.3999 11.9999 14.3999C10.6744 14.3999 9.5999 13.3254 9.5999 11.9999C9.5999 10.6744 10.6744 9.5999 11.9999 9.5999C13.3254 9.5999 14.3999 10.6744 14.3999 11.9999Z" stroke="white" strokeWidth="2"/>
                             </svg>
                         </NavButton>
-                        <NavButton path="/upload">
+                        {/* <NavButton path="/upload">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5.9999 10.9667L11.9999 16.8L17.9999 10.9667M11.9999 16.8L11.9999 2.40002M2.3999 21.6H21.5999" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
@@ -290,30 +290,15 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M4 6H20M4 12H20M4 18H14" stroke="white" strokeWidth="2" strokeLinecap="round"/>
                             </svg>
-                        </NavButton>
+                        </NavButton> */}
 
-                        {/* User / logout */}
-                        <button
-                            onClick={() => { logout(); navigate('/login'); }}
-                            title={user?.name ?? user?.email ?? 'выйти'}
-                            style={{
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '2px 8px',
-                                opacity: 0.45,
-                                transition: 'opacity 0.2s',
-                            }}
-                            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
-                            onMouseLeave={e => (e.currentTarget.style.opacity = '0.45')}
-                        >
+                        {/* User / profile */}
+                        <NavButton path="/profile">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="2"/>
                                 <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="white" strokeWidth="2" strokeLinecap="round"/>
                             </svg>
-                        </button>
+                        </NavButton>
                     </div>
                 </div>
             </div>

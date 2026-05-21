@@ -128,7 +128,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     useEffect(() => {
         if (!token) { setTracks([]); return; }
-        fetch('https://vapira.ru/library', {
+        fetch('https://vapira.ru/saved', {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((r) => r.json())
