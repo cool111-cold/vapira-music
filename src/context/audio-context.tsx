@@ -24,13 +24,16 @@ interface AudioContextType {
     isPlaying: boolean;
     currentTime: number; // 0–100 percent
     durationSec: number; // total duration in seconds
+    volume: number; // 0–1
     collapsed: boolean;
     setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
     toggle: () => void;
     seek: (percent: number) => void;
+    setVolume: (v: number) => void;
     next: () => void;
     prev: () => void;
     playTrack: (index: number) => void;
+    loadAndPlayExternal: (track: Track) => void;
 }
 
 const AudioCtx = createContext<AudioContextType | undefined>(undefined);
@@ -42,11 +45,17 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [durationSec, setDurationSec] = useState(0);
+    const [volume, setVolumeState] = useState(1);
     const [collapsed, setCollapsed] = useState(false);
+    const volumeRef = useRef(1);
 
     const howlRef = useRef<Howl | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const trackIndexRef = useRef(0);
+    const tracksRef = useRef<Track[]>([]);
+    tracksRef.current = tracks;
+    const isInitializedRef = useRef(false);
+    const pendingPlayIdRef = useRef<string | null>(null);
 
     // loadTrackRef always holds the latest version of loadTrack so Howl's
     // onend callback never closes over a stale copy.
@@ -71,12 +80,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setDurationSec(0);
         trackIndexRef.current = index;
 
-        const track = tracks[index];
+        const track = tracksRef.current[index];
         if (!track) return;
 
         howlRef.current = new Howl({
             src: [track.src],
             html5: true,
+            volume: volumeRef.current,
             autoplay,
             onload: () => {
                 const dur = howlRef.current?.duration() ?? 0;
@@ -106,7 +116,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 setIsPlaying(false);
                 stopInterval();
                 const next = trackIndexRef.current + 1;
-                if (next < tracks.length) {
+                if (next < tracksRef.current.length) {
                     setTrackIndex(next);
                     loadTrackRef.current(next, true);
                 }
@@ -134,16 +144,41 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             .then(setTracks);
     }, [token]);
 
-    // Load first track silently once tracks arrive; clean up on unmount.
+    // Load first track silently on initial fetch; reset on logout.
     useEffect(() => {
-        if (tracks.length === 0) return;
+        if (tracks.length === 0) {
+            isInitializedRef.current = false;
+            pendingPlayIdRef.current = null;
+            stopInterval();
+            howlRef.current?.unload();
+            howlRef.current = null;
+            return;
+        }
+        // Play a track added by loadAndPlayExternal once state is updated
+        if (pendingPlayIdRef.current !== null) {
+            const id = pendingPlayIdRef.current;
+            pendingPlayIdRef.current = null;
+            const idx = tracks.findIndex(t => t.id === id);
+            if (idx >= 0) {
+                setTrackIndex(idx);
+                loadTrackRef.current(idx, true);
+            }
+            isInitializedRef.current = true;
+            return;
+        }
+        if (isInitializedRef.current) return;
+        isInitializedRef.current = true;
         loadTrackRef.current(0, false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tracks]);
+
+    // Cleanup on unmount.
+    useEffect(() => {
         return () => {
             stopInterval();
             howlRef.current?.unload();
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tracks]);
+    }, []);
 
     const toggle = useCallback(() => {
         const h = howlRef.current;
@@ -162,19 +197,36 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrentTime(percent);
     }, []);
 
+    const setVolume = useCallback((v: number) => {
+        const clamped = Math.max(0, Math.min(1, v));
+        volumeRef.current = clamped;
+        setVolumeState(clamped);
+        if (howlRef.current) howlRef.current.volume(clamped);
+    }, []);
+
     const playTrack = useCallback((index: number) => {
         setTrackIndex(index);
         loadTrackRef.current(index, true);
     }, []);
 
     const next = useCallback(() => {
-        if (trackIndexRef.current < tracks.length - 1)
+        if (trackIndexRef.current < tracksRef.current.length - 1)
             playTrack(trackIndexRef.current + 1);
-    }, [playTrack, tracks.length]);
+    }, [playTrack]);
 
     const prev = useCallback(() => {
         if (trackIndexRef.current > 0)
             playTrack(trackIndexRef.current - 1);
+    }, [playTrack]);
+
+    const loadAndPlayExternal = useCallback((track: Track) => {
+        const idx = tracksRef.current.findIndex(t => t.id === track.id);
+        if (idx >= 0) {
+            playTrack(idx);
+            return;
+        }
+        pendingPlayIdRef.current = track.id;
+        setTracks(prev => [...prev, track]);
     }, [playTrack]);
 
     return (
@@ -186,13 +238,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 isPlaying,
                 currentTime,
                 durationSec,
+                volume,
                 collapsed,
                 setCollapsed,
                 toggle,
                 seek,
+                setVolume,
                 next,
                 prev,
                 playTrack,
+                loadAndPlayExternal,
             }}
         >
             {children}

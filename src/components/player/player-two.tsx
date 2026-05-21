@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '../icon';
 import { Text } from '../text';
 import { useAudioPlayer } from '../../context/audio-context';
 import { useAuth } from '../../context/auth-context';
+import { useSaved } from '../../context/saved-context';
 
 const NavButton = ({ path, children }: { path: string; children: React.ReactNode }) => {
     const navigate = useNavigate();
@@ -38,8 +39,23 @@ const formatTime = (seconds: number): string => {
 };
 
 export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
-    const { currentTrack, isPlaying, currentTime, durationSec, collapsed, setCollapsed, toggle, seek, next, prev } = useAudioPlayer();
+    const { currentTrack, isPlaying, currentTime, durationSec, volume, collapsed, setCollapsed, toggle, seek, setVolume, next, prev } = useAudioPlayer();
+    const [showVolume, setShowVolume] = useState(false);
+    const volumeRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!showVolume) return;
+        const handler = (e: MouseEvent) => {
+            if (volumeRef.current && !volumeRef.current.contains(e.target as Node)) {
+                setShowVolume(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [showVolume]);
     const { user, logout } = useAuth();
+    const { savedIds, toggleSaved } = useSaved();
+    const isLiked = currentTrack ? savedIds.has(currentTrack.id) : false;
     const navigate = useNavigate();
 
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,9 +114,11 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                         display: 'flex',
                         flexDirection: 'row',
                         alignItems: 'center',
+                        justifyContent:'center',
                         gap: 24,
                     }}
                 >
+                    {currentTrack && <>
                     {/* Track info */}
                     <div
                         style={{
@@ -138,7 +156,54 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                             flexShrink: 0,
                         }}
                     >
-                        <Icon name="volume" size={22} color="#B4B4B4" hoverColor="#fff" isClick />
+                        <div
+                            ref={volumeRef}
+                            style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+                        >
+                            <Icon
+                                name="volume"
+                                size={22}
+                                color={showVolume ? '#fff' : '#B4B4B4'}
+                                hoverColor="#fff"
+                                isClick
+                                onClick={() => setShowVolume(v => !v)}
+                            />
+                            {showVolume && (
+                                <div style={{
+                                    position: 'absolute',
+                                    ...(top ? { top: '140%' } : { bottom: '140%' }),
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    background: 'rgba(20,20,20,0.95)',
+                                    borderRadius: 8,
+                                    padding: '10px 8px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    zIndex: 10,
+                                }}>
+                                    <span style={{ color: '#8D8D8D', fontSize: 10 }}>{Math.round(volume * 100)}</span>
+                                    <input
+                                        className="player-seek"
+                                        type="range"
+                                        min={0}
+                                        max={1}
+                                        step={0.01}
+                                        value={volume}
+                                        onChange={e => setVolume(Number(e.target.value))}
+                                        style={{
+                                            writingMode: 'vertical-lr' as const,
+                                            direction: 'rtl' as const,
+                                            height: 80,
+                                            width: 3,
+                                            cursor: 'pointer',
+                                            background: `linear-gradient(to top, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%, rgba(255,255,255,0.2) 100%)`,
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </div>
                         <Icon
                             name="SkipBackIcon"
                             size={22}
@@ -160,7 +225,14 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                             isClick
                             onClick={next}
                         />
-                        <Icon name="LikeTwoIcon" size={22} color="#B4B4B4" hoverColor="#fff" isClick />
+                        <Icon
+                            name="LikeTwoIcon"
+                            size={22}
+                            color={isLiked ? '#FD5E5E' : '#B4B4B4'}
+                            hoverColor={isLiked ? '#FD5E5E' : '#fff'}
+                            isClick
+                            onClick={() => currentTrack && toggleSaved(currentTrack.id)}
+                        />
                     </div>
 
                     {/* Seek bar with time */}
@@ -194,6 +266,7 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
                             {formatTime(durationSec)}
                         </span>
                     </div>
+                    </>}
 
                     {/* Navigation */}
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>

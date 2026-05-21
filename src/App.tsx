@@ -7,6 +7,7 @@ import VinylTransport from './VinylTransport';
 import { VinylPage } from './pages/vinyl';
 import { AudioProvider } from './context/audio-context';
 import { AuthProvider, useAuth } from './context/auth-context';
+import { SavedProvider } from './context/saved-context';
 import { MyProvider } from './context';
 import { PlayerTwo } from './components/player/player-two';
 import { UploadPage } from './pages/upload';
@@ -69,6 +70,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AudioProvider>
+        <SavedProvider>
         <MyProvider>
           <BrowserRouter>
             <Routes>
@@ -84,6 +86,7 @@ export default function App() {
             </Routes>
           </BrowserRouter>
         </MyProvider>
+        </SavedProvider>
       </AudioProvider>
     </AuthProvider>
   );

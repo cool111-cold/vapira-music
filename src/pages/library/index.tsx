@@ -38,6 +38,7 @@ export const LibraryPage = () => {
                 title: t.title,
                 artist: t.artist,
                 cover: t.avatar_url,
+                src: `https://vapira.ru${t.stream_url}`,
             })))
             .then(setTracks)
             .catch(() => setTracks([]))

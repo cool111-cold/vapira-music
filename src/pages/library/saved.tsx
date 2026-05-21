@@ -21,6 +21,7 @@ export const SavedPage = () => {
                 title: t.title,
                 artist: t.artist,
                 cover: t.avatar_url,
+                src: `https://vapira.ru${t.stream_url}`,
             })))
             .then(setTracks)
             .catch(() => setTracks([]))
@@ -41,7 +42,7 @@ export const SavedPage = () => {
                 {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>loading...</p>}
                 {!loading && tracks.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>no saved tracks</p>}
                 {tracks.map(t => (
-                    <TrackRow key={t.id} track={t} saved onRemove={handleRemove} />
+                    <TrackRow key={t.id} track={t} onRemove={handleRemove} />
                 ))}
             </div>
         </div>

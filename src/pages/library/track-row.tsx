@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { useAudioPlayer } from '../../context/audio-context'
 import { useAuth } from '../../context/auth-context'
+import { useSaved } from '../../context/saved-context'
+import { Icon } from '../../components/icon'
 
 const BASE = 'https://vapira.ru'
 
@@ -9,37 +11,46 @@ export interface LibTrack {
     title: string
     artist: string
     cover?: string
+    src: string
 }
 
 interface TrackRowProps {
     track: LibTrack
-    saved?: boolean
     onRemove?: (id: string) => void
     onDelete?: (id: string) => void
 }
 
-export const TrackRow: React.FC<TrackRowProps> = ({ track, saved = false, onRemove, onDelete }) => {
+export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete }) => {
     const { token } = useAuth()
-    const { tracks, playTrack } = useAudioPlayer()
-    const [isSaved, setIsSaved] = useState(saved)
+    const { loadAndPlayExternal, currentTrack, isPlaying, toggle } = useAudioPlayer()
+    const { savedIds, toggleSaved } = useSaved()
     const [toggling, setToggling] = useState(false)
     const [deleting, setDeleting] = useState(false)
 
+    const isCurrentTrack = currentTrack?.id === track.id
+    const isThisPlaying = isCurrentTrack && isPlaying
+    const isSaved = savedIds.has(track.id)
+
     const handlePlay = () => {
-        const idx = tracks.findIndex(t => t.id === track.id)
-        if (idx >= 0) playTrack(idx)
+        if (isCurrentTrack) {
+            toggle()
+        } else {
+            loadAndPlayExternal({
+                id: track.id,
+                name: track.title,
+                artist: track.artist,
+                cover: track.cover,
+                src: track.src,
+            })
+        }
     }
 
     const handleSave = async () => {
         if (!token || toggling) return
         setToggling(true)
         try {
-            await fetch(`${BASE}/saved/${track.id}`, {
-                method: isSaved ? 'DELETE' : 'POST',
-                headers: { Authorization: `Bearer ${token}` },
-            })
+            await toggleSaved(track.id)
             if (isSaved) onRemove?.(track.id)
-            setIsSaved(s => !s)
         } finally {
             setToggling(false)
         }
@@ -67,20 +78,37 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, saved = false, onRemo
             padding: '0.75rem 0',
             borderBottom: '1px solid #2a2a2a',
         }}>
-            {track.cover
-                ? <img src={track.cover} alt="" style={{ width: 44, height: 44, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                : <div style={{ width: 44, height: 44, borderRadius: 4, background: '#333', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '1.2rem' }}>♪</div>
-            }
+            <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0, cursor: 'pointer' }} onClick={handlePlay}>
+                {track.cover
+                    ? <img src={track.cover} alt="" style={{ width: 44, height: 44, borderRadius: 4, objectFit: 'cover', display: 'block' }} />
+                    : <div style={{ width: 44, height: 44, borderRadius: 4, background: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '1.2rem' }}>♪</div>
+                }
+                <div style={{
+                    position: 'absolute', inset: 0, borderRadius: 4,
+                    background: isCurrentTrack ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'background 0.2s',
+                }}>
+                    {isCurrentTrack && (
+                        isThisPlaying
+                            ? <Icon name="PauseIcon" size={20} color="#fff" />
+                            : <Icon name="PlayTwoIcon" size={20} color="#fff" />
+                    )}
+                </div>
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
+                <div style={{ color: isCurrentTrack ? '#FD5E5E' : '#fff', fontSize: '0.875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
                 <div style={{ color: '#666', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
             </div>
             <button
                 onClick={handlePlay}
-                title="play"
-                style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '1rem', padding: '0.4rem 0.5rem', lineHeight: 1 }}
+                title={isThisPlaying ? 'pause' : 'play'}
+                style={{ background: 'none', border: 'none', color: isCurrentTrack ? '#FD5E5E' : '#aaa', cursor: 'pointer', padding: '0.4rem 0.5rem', lineHeight: 1, display: 'flex', alignItems: 'center' }}
             >
-                ▶
+                {isThisPlaying
+                    ? <Icon name="PauseIcon" size={18} color="#FD5E5E" />
+                    : <Icon name="PlayTwoIcon" size={18} color={isCurrentTrack ? '#FD5E5E' : '#aaa'} />
+                }
             </button>
             <button
                 onClick={handleSave}
