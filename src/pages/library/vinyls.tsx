@@ -186,16 +186,142 @@ export interface VinylApi {
     artist: string | null
     description: string | null
     bg_color: string | null
+    second_color: string | null
+    disk_image: string | null
     cover: string | null
+    video_cover: string | null
+}
+
+const vinylEditInputStyle: React.CSSProperties = {
+    background: 'transparent',
+    border: 'none',
+    borderBottom: '1px solid #444',
+    color: '#fff',
+    fontFamily: 'inherit',
+    fontSize: '0.9rem',
+    padding: '0.4rem 0',
+    outline: 'none',
+    width: '100%',
+}
+
+const vinylEditLabelStyle: React.CSSProperties = {
+    color: '#888',
+    fontSize: '0.7rem',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    marginBottom: '0.25rem',
+    display: 'block',
+}
+
+const PencilIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M13.7999 19.5514H19.7999M4.19995 19.5514L8.56594 18.6717C8.79771 18.625 9.01053 18.5109 9.17767 18.3437L18.9513 8.56461C19.4199 8.09576 19.4196 7.33577 18.9506 6.86731L16.8802 4.79923C16.4114 4.33097 15.6518 4.33129 15.1834 4.79995L5.40871 14.58C5.2419 14.7469 5.128 14.9593 5.08125 15.1906L4.19995 19.5514Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+)
+
+const EditVinylModal: React.FC<{ vinyl: VinylApi; token: string; onClose: () => void; onSaved: (updated: VinylApi) => void }> = ({ vinyl, token, onClose, onSaved }) => {
+    const [form, setForm] = useState({
+        name: vinyl.name,
+        artist: vinyl.artist ?? '',
+        description: vinyl.description ?? '',
+        bg_color: vinyl.bg_color ?? '',
+        second_color: vinyl.second_color ?? '',
+        disk_image: vinyl.disk_image ?? '',
+        cover: vinyl.cover ?? '',
+        video_cover: vinyl.video_cover ?? '',
+    })
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState('')
+
+    const set = (key: keyof typeof form, val: string) => setForm(f => ({ ...f, [key]: val }))
+
+    const handleSave = async () => {
+        setSaving(true)
+        setError('')
+        const payload: Record<string, string> = {}
+        const fields: (keyof typeof form)[] = ['name', 'artist', 'description', 'bg_color', 'second_color', 'disk_image', 'cover', 'video_cover']
+        for (const k of fields) {
+            const orig = (vinyl[k as keyof VinylApi] ?? '') as string
+            if (form[k] !== orig) payload[k] = form[k]
+        }
+        try {
+            const res = await fetch(`${BASE}/vinyl/${vinyl.id}`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            })
+            if (!res.ok) throw new Error('Ошибка сохранения')
+            onSaved({
+                ...vinyl,
+                name: form.name,
+                artist: form.artist || null,
+                description: form.description || null,
+                bg_color: form.bg_color || null,
+                second_color: form.second_color || null,
+                disk_image: form.disk_image || null,
+                cover: form.cover || null,
+                video_cover: form.video_cover || null,
+            })
+            onClose()
+        } catch (e: any) {
+            setError(e.message ?? 'Ошибка')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    return (
+        <div
+            style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={e => { if (e.target === e.currentTarget) onClose() }}
+        >
+            <div style={{ background: '#111', border: '1px solid #222', borderRadius: '0.75rem', padding: '2rem', width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: '1.25rem', maxHeight: '85vh', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#fff', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>Редактировать пластинку</span>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1 }}>×</button>
+                </div>
+                {([
+                    { label: 'Название', key: 'name' },
+                    { label: 'Исполнитель', key: 'artist' },
+                    { label: 'Описание', key: 'description' },
+                    { label: 'Основной цвет (HEX)', key: 'bg_color' },
+                    { label: 'Второй цвет (HEX)', key: 'second_color' },
+                    { label: 'Обложка (URL)', key: 'cover' },
+                    { label: 'Изображение диска (URL)', key: 'disk_image' },
+                    { label: 'Видеообложка (URL)', key: 'video_cover' },
+                ] as { label: string; key: keyof typeof form }[]).map(({ label, key }) => (
+                    <div key={key}>
+                        <label style={vinylEditLabelStyle}>{label}</label>
+                        <input
+                            value={form[key]}
+                            onChange={e => set(key, e.target.value)}
+                            style={vinylEditInputStyle}
+                            autoComplete="off"
+                        />
+                    </div>
+                ))}
+                {error && <p style={{ color: '#f55', fontSize: '0.8rem', margin: 0 }}>{error}</p>}
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{ background: '#fff', color: '#000', border: 'none', borderRadius: '0.4rem', padding: '0.65rem 1.5rem', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, alignSelf: 'flex-end' }}
+                >
+                    {saving ? 'Сохранение...' : 'Сохранить'}
+                </button>
+            </div>
+        </div>
+    )
 }
 
 interface VinylRowProps {
     vinyl: VinylApi
     token: string
     onDeleted: (id: number) => void
+    showSave?: boolean
+    initialSaved?: boolean
 }
 
-export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) => {
+export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, showSave, initialSaved }) => {
     const [open, setOpen] = useState(false)
     const [tracks, setTracks] = useState<TrackApi[]>([])
     const [tracksLoaded, setTracksLoaded] = useState(false)
@@ -204,13 +330,17 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) =
     const [deleting, setDeleting] = useState(false)
     const [confirmDelete, setConfirmDelete] = useState(false)
     const [removingId, setRemovingId] = useState<number | null>(null)
+    const [editOpen, setEditOpen] = useState(false)
+    const [localVinyl, setLocalVinyl] = useState(vinyl)
+    const [saving, setSaving] = useState(false)
+    const [saved, setSaved] = useState(initialSaved ?? false)
 
     const loadTracks = useCallback(() => {
         if (tracksLoaded) return
         setTracksLoading(true)
         fetch(`${BASE}/vinyl/${vinyl.id}/tracks`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
-            .then(data => { setTracks(data); setTracksLoaded(true) })
+            .then(data => { setTracks(Array.isArray(data) ? data : []); setTracksLoaded(true) })
             .catch(() => setTracks([]))
             .finally(() => setTracksLoading(false))
     }, [vinyl.id, token, tracksLoaded])
@@ -249,55 +379,101 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) =
         setShowModal(false)
     }
 
+    const handleSaveVinyl = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (saving) return
+        setSaving(true)
+        try {
+            const method = saved ? 'DELETE' : 'POST'
+            await fetch(`${BASE}/saved-vinyls/${localVinyl.id}`, { method, headers: { Authorization: `Bearer ${token}` } })
+            if (saved && initialSaved) onDeleted(localVinyl.id)
+            else setSaved(s => !s)
+        } finally {
+            setSaving(false)
+        }
+    }
+
     const existingIds = new Set(tracks.map(t => t.id))
 
     return (
-        <div style={{ borderBottom: '1px solid #2a2a2a' }}>
+        <>
+            {editOpen && (
+                <EditVinylModal
+                    vinyl={localVinyl}
+                    token={token}
+                    onClose={() => setEditOpen(false)}
+                    onSaved={updated => setLocalVinyl(updated)}
+                />
+            )}
+            <div style={{ borderBottom: '1px solid #2a2a2a' }}>
             <div
                 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 0', cursor: 'pointer' }}
                 onClick={handleToggle}
             >
-                {vinyl.cover
-                    ? <img src={`${BASE}${vinyl.cover}`} alt="" style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 40, height: 40, borderRadius: 4, background: vinyl.bg_color ?? '#333', flexShrink: 0 }} />
+                {localVinyl.cover
+                    ? <img src={`${BASE}${localVinyl.cover}`} alt="" style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 40, height: 40, borderRadius: 4, background: localVinyl.bg_color ?? '#333', flexShrink: 0 }} />
                 }
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vinyl.name}</div>
-                    {vinyl.artist && <div style={{ color: '#666', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{vinyl.artist}</div>}
+                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localVinyl.name}</div>
+                    {localVinyl.artist && <div style={{ color: '#666', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localVinyl.artist}</div>}
                 </div>
                 <span style={{ color: '#444', flexShrink: 0, display: 'flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M7 10L12.0008 14.58L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                 </span>
-                {confirmDelete ? (
+                {showSave && (
+                    <button
+                        onClick={handleSaveVinyl}
+                        disabled={saving}
+                        title={saved ? 'unsave' : 'save'}
+                        style={{ background: 'none', border: 'none', color: saved ? '#fff' : '#444', cursor: saving ? 'default' : 'pointer', fontSize: '1.2rem', padding: '0.25rem 0.5rem', lineHeight: 1, flexShrink: 0 }}
+                    >
+                        ♥
+                    </button>
+                )}
+                {!showSave && (
                     <>
                         <button
-                            onClick={e => { e.stopPropagation(); handleDelete() }}
-                            disabled={deleting}
-                            style={{ background: 'none', border: 'none', color: '#fff', cursor: deleting ? 'default' : 'pointer', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.4rem', lineHeight: 1, flexShrink: 0 }}
+                            onClick={e => { e.stopPropagation(); setEditOpen(true) }}
+                            title="edit vinyl"
+                            style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '0.25rem 0.5rem', lineHeight: 1, flexShrink: 0, transition: 'color 0.2s', display: 'flex' }}
+                            onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+                            onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
                         >
-                            {deleting ? '...' : 'yes'}
+                            <PencilIcon />
                         </button>
-                        <button
-                            onClick={e => { e.stopPropagation(); setConfirmDelete(false) }}
-                            style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.4rem', lineHeight: 1, flexShrink: 0 }}
-                        >
-                            no
-                        </button>
+                        {confirmDelete ? (
+                            <>
+                                <button
+                                    onClick={e => { e.stopPropagation(); handleDelete() }}
+                                    disabled={deleting}
+                                    style={{ background: 'none', border: 'none', color: '#fff', cursor: deleting ? 'default' : 'pointer', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.4rem', lineHeight: 1, flexShrink: 0 }}
+                                >
+                                    {deleting ? '...' : 'yes'}
+                                </button>
+                                <button
+                                    onClick={e => { e.stopPropagation(); setConfirmDelete(false) }}
+                                    style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '0.7rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.25rem 0.4rem', lineHeight: 1, flexShrink: 0 }}
+                                >
+                                    no
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
+                                title="delete vinyl"
+                                style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem 0.5rem', lineHeight: 1, flexShrink: 0, transition: 'color 0.2s', display: 'flex' }}
+                                onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+                                onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
+                            </button>
+                        )}
                     </>
-                ) : (
-                    <button
-                        onClick={e => { e.stopPropagation(); setConfirmDelete(true) }}
-                        title="delete vinyl"
-                        style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem 0.5rem', lineHeight: 1, flexShrink: 0, transition: 'color 0.2s' }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                    </button>
                 )}
             </div>
 
@@ -329,33 +505,35 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) =
                             </button>
                         </div>
                     ))}
-                    <button
-                        onClick={() => setShowModal(true)}
-                        style={{
-                            marginTop: '0.75rem',
-                            background: 'none',
-                            border: '1px solid #333',
-                            borderRadius: '0.35rem',
-                            color: '#aaa',
-                            fontSize: '0.75rem',
-                            letterSpacing: '0.08em',
-                            textTransform: 'uppercase',
-                            cursor: 'pointer',
-                            padding: '0.45rem 0.85rem',
-                            transition: 'border-color 0.2s, color 0.2s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa' }}
-                    >
-                        + add track
-                    </button>
+                    {!showSave && (
+                        <button
+                            onClick={() => setShowModal(true)}
+                            style={{
+                                marginTop: '0.75rem',
+                                background: 'none',
+                                border: '1px solid #333',
+                                borderRadius: '0.35rem',
+                                color: '#aaa',
+                                fontSize: '0.75rem',
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                cursor: 'pointer',
+                                padding: '0.45rem 0.85rem',
+                                transition: 'border-color 0.2s, color 0.2s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.color = '#fff' }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa' }}
+                        >
+                            + add track
+                        </button>
+                    )}
                 </div>
             )}
 
             {showModal && (
                 <AddTrackModal
-                    vinylId={vinyl.id}
-                    vinylName={vinyl.name}
+                    vinylId={localVinyl.id}
+                    vinylName={localVinyl.name}
                     existingTrackIds={existingIds}
                     token={token}
                     onClose={() => setShowModal(false)}
@@ -363,6 +541,7 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted }) =
                 />
             )}
         </div>
+    </>
     )
 }
 

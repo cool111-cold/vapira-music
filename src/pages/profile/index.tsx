@@ -250,6 +250,84 @@ const UploadedTracksList = ({ token }: { token: string }) => {
     )
 }
 
+const SavedVinylsList = ({ token }: { token: string }) => {
+    const [saved, setSaved] = useState<VinylApi[]>([])
+    const [savedLoading, setSavedLoading] = useState(true)
+    const [input, setInput] = useState('')
+    const [query, setQuery] = useState('')
+    const [searchResults, setSearchResults] = useState<VinylApi[]>([])
+    const [searchLoading, setSearchLoading] = useState(false)
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+    useEffect(() => {
+        setSavedLoading(true)
+        fetch(`${BASE}/saved-vinyls`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setSaved(Array.isArray(data) ? data : []))
+            .catch(() => setSaved([]))
+            .finally(() => setSavedLoading(false))
+    }, [token])
+
+    useEffect(() => {
+        if (!query) { setSearchResults([]); return }
+        setSearchLoading(true)
+        fetch(`${BASE}/search/vinyl?q=${encodeURIComponent(query)}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(setSearchResults)    
+            // .then(data => setSearchResults(Array.isArray(data) ? data : []))
+            .catch(() => setSearchResults([]))
+            .finally(() => setSearchLoading(false))
+    }, [query, token])
+
+    useEffect(() => () => clearTimeout(debounceRef.current), [])
+
+    const handleChange = (val: string) => {
+        setInput(val)
+        clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => setQuery(val.trim()), 400)
+    }
+
+    const handleRemove = (id: number) => setSaved(prev => prev.filter(v => v.id !== id))
+
+    const isSearching = query.length > 0
+    const loading = isSearching ? searchLoading : savedLoading
+    const vinyls = isSearching ? searchResults : saved
+
+    return (
+        <>
+            <input
+                value={input}
+                onChange={e => handleChange(e.target.value)}
+                placeholder="Название пластинки или исполнителя..."
+                style={{
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid #444',
+                    color: '#fff',
+                    fontFamily: 'inherit',
+                    fontSize: '1rem',
+                    padding: '0.4rem 0',
+                    outline: 'none',
+                    width: '100%',
+                    marginBottom: '1.25rem',
+                }}
+            />
+            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>{isSearching ? 'поиск...' : 'загрузка...'}</p>}
+            {!loading && vinyls.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>{isSearching ? 'ничего не нашли' : 'нет сохраненных пластинок'}</p>}
+            {vinyls.map(v => (
+                <VinylRow
+                    key={v.id}
+                    vinyl={v}
+                    token={token}
+                    onDeleted={handleRemove}
+                    showSave
+                    initialSaved={!isSearching}
+                />
+            ))}
+        </>
+    )
+}
+
 const UploadedVinylsList = ({ token }: { token: string }) => {
     const navigate = useNavigate()
     const [vinyls, setVinyls] = useState<VinylApi[]>([])
@@ -322,7 +400,7 @@ const EditProfileModal = ({ onClose }: { onClose: () => void }) => {
                 setTracks(data.filter(t => seen.has(t.id) ? false : (seen.add(t.id), true)))
             })
             .catch(() => {})
-        fetch(`${BASE}/vinyl`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${BASE}/vinyl-library`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.ok ? r.json() : [])
             .then(setVinyls)
             .catch(() => {})
@@ -624,7 +702,7 @@ export const ProfilePage = () => {
                                 <TabBtn active={subTab === 'saved'} onClick={() => setSubTab('saved')} label="Добавленные" />
                                 <TabBtn active={subTab === 'uploaded'} onClick={() => setSubTab('uploaded')} label="Загруженные" />
                             </div>
-                            {subTab === 'saved' && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет сохраненных пластинок</p>}
+                            {token && subTab === 'saved' && <SavedVinylsList token={token} />}
                             {token && subTab === 'uploaded' && <UploadedVinylsList token={token} />}
                         </div>
                     )}

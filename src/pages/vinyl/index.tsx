@@ -359,7 +359,7 @@ export const VinylPage = () => {
 
     useEffect(() => {
         if (!token) return
-        fetch('https://vapira.ru/vinyl', {
+        fetch('https://vapira.ru/vinyl-library', {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(r => r.json())
