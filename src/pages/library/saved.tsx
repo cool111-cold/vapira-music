@@ -22,6 +22,7 @@ export const SavedPage = () => {
                 artist: t.artist,
                 cover: t.avatar_url,
                 src: `https://vapira.ru${t.stream_url}`,
+                user_id: String(t.user_id),
             })))
             .then(setTracks)
             .catch(() => setTracks([]))

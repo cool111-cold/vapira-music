@@ -9,8 +9,23 @@ import { VinylRow, VinylApi } from '../library/vinyls'
 
 const BASE = 'https://vapira.ru'
 
-type MainTab = 'tracks' | 'vinyls' | null
+type MainTab = 'tracks' | 'vinyls' | 'friends' | null
 type SubTab = 'saved' | 'uploaded'
+
+interface FriendUser {
+    id: string
+    name?: string
+    email: string
+    avatar_url?: string
+}
+
+interface FriendRequest {
+    id: number
+    from_user_id: number
+    to_user_id: number
+    status: string
+    user: FriendUser
+}
 
 const pageStyle: React.CSSProperties = {
     width: '100%',
@@ -135,6 +150,243 @@ const AddBtn = ({ label, onClick }: { label: string; onClick: () => void }) => (
     </button>
 )
 
+const FriendRow = ({
+    user, isFriend, isPending, isSearching, requestSent, onAdd, onRemove, onClick,
+}: {
+    user: FriendUser; isFriend: boolean; isPending: boolean; isSearching: boolean
+    requestSent: boolean; onAdd: () => void; onRemove: () => void; onClick: () => void
+}) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a' }}>
+        <div onClick={onClick} style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#222', cursor: 'pointer', flexShrink: 0 }}>
+            {user.avatar_url && <img src={user.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        </div>
+        <div onClick={onClick} style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}>
+            <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name ?? user.email}
+            </div>
+            {user.name && <div style={{ color: '#555', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>}
+        </div>
+        {isSearching && !isFriend && (
+            <button
+                onClick={e => { e.stopPropagation(); onAdd() }}
+                disabled={isPending || requestSent}
+                style={{
+                    background: 'none', border: '1px solid #333', borderRadius: '0.4rem',
+                    color: requestSent ? '#555' : '#aaa', fontSize: '0.7rem', letterSpacing: '0.08em',
+                    textTransform: 'uppercase', cursor: (isPending || requestSent) ? 'not-allowed' : 'pointer',
+                    padding: '0.3rem 0.75rem', opacity: isPending ? 0.5 : 1, flexShrink: 0,
+                }}
+            >
+                {isPending ? '...' : requestSent ? 'отправлено' : '+ добавить'}
+            </button>
+        )}
+        {isSearching && isFriend && (
+            <span style={{ color: '#555', fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>в друзьях</span>
+        )}
+        {!isSearching && (
+            <button
+                onClick={e => { e.stopPropagation(); onRemove() }}
+                disabled={isPending}
+                style={{
+                    background: 'none', border: '1px solid #333', borderRadius: '0.4rem',
+                    color: '#555', fontSize: '0.7rem', letterSpacing: '0.08em',
+                    textTransform: 'uppercase', cursor: isPending ? 'not-allowed' : 'pointer',
+                    padding: '0.3rem 0.75rem', opacity: isPending ? 0.5 : 1, flexShrink: 0,
+                }}
+            >
+                {isPending ? '...' : 'удалить'}
+            </button>
+        )}
+    </div>
+)
+
+const FriendRequestRow = ({ request, isPending, onAccept, onReject }: {
+    request: FriendRequest; isPending: boolean; onAccept: () => void; onReject: () => void
+}) => {
+    const u = request.user
+    return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a' }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#222', flexShrink: 0 }}>
+            {u.avatar_url && <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {u.name ?? u.email}
+            </div>
+            {u.name && (
+                <div style={{ color: '#555', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+            )}
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+            <button
+                onClick={onAccept}
+                disabled={isPending}
+                style={{
+                    background: '#fff', border: 'none', borderRadius: '0.4rem', color: '#000',
+                    fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+                    cursor: isPending ? 'not-allowed' : 'pointer', padding: '0.3rem 0.75rem',
+                    opacity: isPending ? 0.5 : 1, fontWeight: 600,
+                }}
+            >
+                принять
+            </button>
+            <button
+                onClick={onReject}
+                disabled={isPending}
+                style={{
+                    background: 'none', border: '1px solid #333', borderRadius: '0.4rem', color: '#555',
+                    fontSize: '0.7rem', letterSpacing: '0.08em', textTransform: 'uppercase',
+                    cursor: isPending ? 'not-allowed' : 'pointer', padding: '0.3rem 0.75rem', opacity: isPending ? 0.5 : 1,
+                }}
+            >
+                отклонить
+            </button>
+        </div>
+    </div>
+    )
+}
+
+const FriendsList = ({ token }: { token: string }) => {
+    const navigate = useNavigate()
+    const [friends, setFriends] = useState<FriendUser[]>([])
+    const [loading, setLoading] = useState(true)
+    const [input, setInput] = useState('')
+    const [query, setQuery] = useState('')
+    const [searchResults, setSearchResults] = useState<FriendUser[]>([])
+    const [searchLoading, setSearchLoading] = useState(false)
+    const [pendingIds, setPendingIds] = useState<Set<string>>(new Set())
+    const [sentRequests, setSentRequests] = useState<Set<string>>(new Set())
+    const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+    useEffect(() => {
+        setLoading(true)
+        fetch(`${BASE}/friends`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setFriends(Array.isArray(data) ? data : []))
+            .catch(() => setFriends([]))
+            .finally(() => setLoading(false))
+    }, [token])
+
+    useEffect(() => {
+        if (!query) { setSearchResults([]); return }
+        setSearchLoading(true)
+        fetch(`${BASE}/search/users?q=${encodeURIComponent(query)}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setSearchResults(Array.isArray(data) ? data : []))
+            .catch(() => setSearchResults([]))
+            .finally(() => setSearchLoading(false))
+    }, [query, token])
+
+    useEffect(() => () => clearTimeout(debounceRef.current), [])
+
+    const handleChange = (val: string) => {
+        setInput(val)
+        clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => setQuery(val.trim()), 400)
+    }
+
+    const isFriend = (userId: string) => friends.some(f => f.id === userId)
+
+    const sendRequest = async (userId: string) => {
+        setPendingIds(prev => new Set(prev).add(userId))
+        try {
+            await fetch(`${BASE}/friends/request/${userId}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+            setSentRequests(prev => new Set(prev).add(userId))
+        } finally {
+            setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s })
+        }
+    }
+
+    const removeFriend = async (userId: string) => {
+        setPendingIds(prev => new Set(prev).add(userId))
+        try {
+            const res = await fetch(`${BASE}/friends/${userId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+            if (res.ok) setFriends(prev => prev.filter(f => f.id !== userId))
+        } finally {
+            setPendingIds(prev => { const s = new Set(prev); s.delete(userId); return s })
+        }
+    }
+
+    const isSearching = query.length > 0
+    const displayLoading = isSearching ? searchLoading : loading
+    const displayList = isSearching ? searchResults : friends
+
+    return (
+        <>
+            <input
+                value={input}
+                onChange={e => handleChange(e.target.value)}
+                placeholder="Поиск по имени или email..."
+                style={{
+                    background: 'transparent', border: 'none', borderBottom: '1px solid #444',
+                    color: '#fff', fontFamily: 'inherit', fontSize: '1rem',
+                    padding: '0.4rem 0', outline: 'none', width: '100%', marginBottom: '1.25rem',
+                }}
+            />
+            {displayLoading && <p style={{ color: '#555', fontSize: '0.875rem' }}>{isSearching ? 'поиск...' : 'загрузка...'}</p>}
+            {!displayLoading && displayList.length === 0 && (
+                <p style={{ color: '#555', fontSize: '0.875rem' }}>{isSearching ? 'никого не нашли' : 'нет друзей'}</p>
+            )}
+            {displayList.map(u => (
+                <FriendRow
+                    key={u.id}
+                    user={u}
+                    isFriend={isFriend(u.id)}
+                    isPending={pendingIds.has(u.id)}
+                    isSearching={isSearching}
+                    requestSent={sentRequests.has(u.id)}
+                    onAdd={() => sendRequest(u.id)}
+                    onRemove={() => removeFriend(u.id)}
+                    onClick={() => navigate(`/users/${u.id}`)}
+                />
+            ))}
+        </>
+    )
+}
+
+const FriendRequestsList = ({ token }: { token: string }) => {
+    const [requests, setRequests] = useState<FriendRequest[]>([])
+    const [loading, setLoading] = useState(true)
+    const [pendingIds, setPendingIds] = useState<Set<number>>(new Set())
+
+    useEffect(() => {
+        setLoading(true)
+        fetch(`${BASE}/friends/requests`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setRequests(Array.isArray(data) ? data : []))
+            .catch(() => setRequests([]))
+            .finally(() => setLoading(false))
+    }, [token])
+
+    const handleAction = async (id: number, action: 'accept' | 'reject') => {
+        setPendingIds(prev => new Set(prev).add(id))
+        try {
+            const res = await fetch(`${BASE}/friends/requests/${id}/${action}`, {
+                method: 'POST', headers: { Authorization: `Bearer ${token}` },
+            })
+            if (res.ok) setRequests(prev => prev.filter(r => r.id !== id))
+        } finally {
+            setPendingIds(prev => { const s = new Set(prev); s.delete(id); return s })
+        }
+    }
+
+    return (
+        <>
+            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
+            {!loading && requests.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет входящих заявок</p>}
+            {requests.map(req => (
+                <FriendRequestRow
+                    key={req.id}
+                    request={req}
+                    isPending={pendingIds.has(req.id)}
+                    onAccept={() => handleAction(req.id, 'accept')}
+                    onReject={() => handleAction(req.id, 'reject')}
+                />
+            ))}
+        </>
+    )
+}
+
 const SavedTracksList = ({ token }: { token: string }) => {
     const [saved, setSaved] = useState<LibTrack[]>([])
     const [savedLoading, setSavedLoading] = useState(true)
@@ -154,6 +406,7 @@ const SavedTracksList = ({ token }: { token: string }) => {
                 artist: t.artist,
                 cover: t.avatar_url,
                 src: `${BASE}${t.stream_url}`,
+                user_id: t.user_id
             })))
             .then(setSaved)
             .catch(() => setSaved([]))
@@ -171,6 +424,7 @@ const SavedTracksList = ({ token }: { token: string }) => {
                 artist: t.artist,
                 cover: t.avatar_url,
                 src: `${BASE}${t.stream_url}`,
+                user_id: t.user_id
             })))
             .then(setSearchResults)
             .catch(() => setSearchResults([]))
@@ -704,6 +958,7 @@ export const ProfilePage = () => {
                         <div style={{ display: 'flex', gap: '0.6rem' }}>
                             <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                             <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
+                            <TabBtn active={mainTab === 'friends'} onClick={() => handleMainTab('friends')} label="Друзья" />
                         </div>
                         <div style={{ display: 'flex', gap: '0.6rem' }}>
                             <ActionBtn label="Редактировать профиль" onClick={() => setEditOpen(true)} />
@@ -732,6 +987,17 @@ export const ProfilePage = () => {
                             </div>
                             {token && subTab === 'saved' && <SavedVinylsList token={token} />}
                             {token && subTab === 'uploaded' && <UploadedVinylsList token={token} />}
+                        </div>
+                    )}
+
+                    {mainTab === 'friends' && (
+                        <div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                                <TabBtn active={subTab === 'saved'} onClick={() => setSubTab('saved')} label="Мои друзья" />
+                                <TabBtn active={subTab === 'uploaded'} onClick={() => setSubTab('uploaded')} label="Заявки" />
+                            </div>
+                            {token && subTab === 'saved' && <FriendsList token={token} />}
+                            {token && subTab === 'uploaded' && <FriendRequestsList token={token} />}
                         </div>
                     )}
                 </div>

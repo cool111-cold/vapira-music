@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAudioPlayer } from '../../context/audio-context'
 import { useAuth } from '../../context/auth-context'
 import { useSaved } from '../../context/saved-context'
@@ -10,6 +11,20 @@ const ShareIcon = () => (
     </svg>
 )
 
+const DotsIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.0001 7.1999C10.6746 7.1999 9.6001 6.12539 9.6001 4.7999C9.6001 3.47442 10.6746 2.3999 12.0001 2.3999C13.3256 2.3999 14.4001 3.47442 14.4001 4.7999C14.4001 6.12539 13.3256 7.1999 12.0001 7.1999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 14.3999C10.6746 14.3999 9.6001 13.3254 9.6001 11.9999C9.6001 10.6744 10.6746 9.5999 12.0001 9.5999C13.3256 9.5999 14.4001 10.6744 14.4001 11.9999C14.4001 13.3254 13.3256 14.3999 12.0001 14.3999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 21.5999C10.6746 21.5999 9.6001 20.5254 9.6001 19.1999C9.6001 17.8744 10.6746 16.7999 12.0001 16.7999C13.3256 16.7999 14.4001 17.8744 14.4001 19.1999C14.4001 20.5254 13.3256 21.5999 12.0001 21.5999Z" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+)
+
+const AuthorIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3.23779 19.5C4.5632 17.2892 7.46807 15.7762 12.0001 15.7762C16.5321 15.7762 19.4369 17.2892 20.7623 19.5M15.6001 8.1C15.6001 10.0882 13.9883 11.7 12.0001 11.7C10.0118 11.7 8.40007 10.0882 8.40007 8.1C8.40007 6.11177 10.0118 4.5 12.0001 4.5C13.9883 4.5 15.6001 6.11177 15.6001 8.1Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+)
+
 const BASE = 'https://vapira.ru'
 
 export interface LibTrack {
@@ -18,6 +33,7 @@ export interface LibTrack {
     artist: string
     cover?: string
     src: string
+    user_id?: string
 }
 
 interface TrackRowProps {
@@ -122,6 +138,7 @@ const PencilIcon = () => (
 
 export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, onEdited }) => {
     const { token } = useAuth()
+    const navigate = useNavigate()
     const { loadAndPlayExternal, currentTrack, isPlaying, toggle } = useAudioPlayer()
     const { savedIds, toggleSaved } = useSaved()
     const [toggling, setToggling] = useState(false)
@@ -129,6 +146,21 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
     const [editOpen, setEditOpen] = useState(false)
     const [localTrack, setLocalTrack] = useState(track)
     const [copied, setCopied] = useState(false)
+    const [menuOpen, setMenuOpen] = useState(false)
+    const menuRef = useRef<HTMLDivElement>(null)
+
+    // console.log(track, '/./././')
+
+    useEffect(() => {
+        if (!menuOpen) return
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [menuOpen])
 
     const handleEdited = (updated: LibTrack) => {
         setLocalTrack(updated)
@@ -138,7 +170,13 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
     const handleShare = () => {
         navigator.clipboard.writeText(`${window.location.origin}/?trackId=${localTrack.id}`)
         setCopied(true)
+        setMenuOpen(false)
         setTimeout(() => setCopied(false), 1500)
+    }
+
+    const handleGoToAuthor = () => {
+        setMenuOpen(false)
+        if (localTrack.user_id) navigate(`/users/${localTrack.user_id}`)
     }
 
     const isCurrentTrack = currentTrack?.id === localTrack.id
@@ -241,15 +279,44 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                 >
                     ♥
                 </button>
-                <button
-                    onClick={handleShare}
-                    title="copy link"
-                    style={{ background: 'none', border: 'none', color: copied ? '#4ade80' : '#444', cursor: 'pointer', padding: '0.4rem 0.5rem', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
-                    onMouseEnter={e => { if (!copied) e.currentTarget.style.color = '#fff' }}
-                    onMouseLeave={e => { if (!copied) e.currentTarget.style.color = '#444' }}
-                >
-                    {copied ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <ShareIcon />}
-                </button>
+                <div ref={menuRef} style={{ position: 'relative' }}>
+                    <button
+                        onClick={() => setMenuOpen(o => !o)}
+                        title="menu"
+                        style={{ background: 'none', border: 'none', color: menuOpen ? '#fff' : '#444', cursor: 'pointer', padding: '0.4rem 0.5rem', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = '#444' }}
+                    >
+                        <DotsIcon />
+                    </button>
+                    {menuOpen && (
+                        <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 100, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '0.5rem', overflow: 'hidden', minWidth: 160 }}>
+                            <button
+                                onClick={handleShare}
+                                style={{ width: '100%', background: 'none', border: 'none', color: copied ? '#4ade80' : '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#252525' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                            >
+                                {copied
+                                    ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    : <ShareIcon />
+                                }
+                                {copied ? 'Скопировано' : 'Поделиться'}
+                            </button>
+                            {localTrack.user_id && (
+                                <button
+                                    onClick={handleGoToAuthor}
+                                    style={{ width: '100%', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = '#252525' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                >
+                                    <AuthorIcon />
+                                    Страница автора
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
                 {onDelete && (
                     <>
                         <button

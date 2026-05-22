@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context'
 import { LibNav } from './lib-nav'
 import { PlayerTwo } from '../../components/player/player-two'
@@ -190,6 +191,7 @@ export interface VinylApi {
     disk_image: string | null
     cover: string | null
     video_cover: string | null
+    user_id: number
 }
 
 const vinylEditInputStyle: React.CSSProperties = {
@@ -222,6 +224,20 @@ const PencilIcon = () => (
 const ShareIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M7.37851 10.1907L5.14505 12.4242C4.31092 13.2583 3.83124 14.3933 3.84001 15.5861C3.84877 16.7789 4.31796 17.9208 5.19167 18.7675C6.03836 19.6413 7.18048 20.1104 8.3731 20.1192C9.59293 20.1282 10.701 19.6755 11.5352 18.8414L13.7687 16.6079M16.6215 13.8097L18.8549 11.5762C19.6891 10.7421 20.1688 9.60711 20.16 8.4143C20.1512 7.22149 19.682 6.0796 18.8083 5.23287C17.9618 4.38638 16.8199 3.91717 15.6271 3.90841C14.4343 3.89964 13.2992 4.35209 12.465 5.18625L10.2315 7.4197M8.6131 15.3274L15.3135 8.62701" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+)
+
+const DotsIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.0001 7.1999C10.6746 7.1999 9.6001 6.12539 9.6001 4.7999C9.6001 3.47442 10.6746 2.3999 12.0001 2.3999C13.3256 2.3999 14.4001 3.47442 14.4001 4.7999C14.4001 6.12539 13.3256 7.1999 12.0001 7.1999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 14.3999C10.6746 14.3999 9.6001 13.3254 9.6001 11.9999C9.6001 10.6744 10.6746 9.5999 12.0001 9.5999C13.3256 9.5999 14.4001 10.6744 14.4001 11.9999C14.4001 13.3254 13.3256 14.3999 12.0001 14.3999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 21.5999C10.6746 21.5999 9.6001 20.5254 9.6001 19.1999C9.6001 17.8744 10.6746 16.7999 12.0001 16.7999C13.3256 16.7999 14.4001 17.8744 14.4001 19.1999C14.4001 20.5254 13.3256 21.5999 12.0001 21.5999Z" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+)
+
+const AuthorIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3.23779 19.5C4.5632 17.2892 7.46807 15.7762 12.0001 15.7762C16.5321 15.7762 19.4369 17.2892 20.7623 19.5M15.6001 8.1C15.6001 10.0882 13.9883 11.7 12.0001 11.7C10.0118 11.7 8.40007 10.0882 8.40007 8.1C8.40007 6.11177 10.0118 4.5 12.0001 4.5C13.9883 4.5 15.6001 6.11177 15.6001 8.1Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     </svg>
 )
 
@@ -328,6 +344,7 @@ interface VinylRowProps {
 }
 
 export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, showSave, initialSaved }) => {
+    const navigate = useNavigate()
     const [open, setOpen] = useState(false)
     const [tracks, setTracks] = useState<TrackApi[]>([])
     const [tracksLoaded, setTracksLoaded] = useState(false)
@@ -341,12 +358,32 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
     const [saving, setSaving] = useState(false)
     const [saved, setSaved] = useState(initialSaved ?? false)
     const [copied, setCopied] = useState(false)
+    const [menuOpen, setMenuOpen] = useState(false)
+    const menuRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (!menuOpen) return
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [menuOpen])
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation()
         navigator.clipboard.writeText(`${window.location.origin}/vinyl?vinylId=${localVinyl.id}`)
         setCopied(true)
+        setMenuOpen(false)
         setTimeout(() => setCopied(false), 1500)
+    }
+
+    const handleGoToAuthor = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setMenuOpen(false)
+        navigate(`/users/${localVinyl.user_id}`)
     }
 
     const loadTracks = useCallback(() => {
@@ -447,20 +484,54 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
                         ♥
                     </button>
                 )}
-                <button
-                    onClick={handleShare}
-                    title="copy link"
-                    style={{ background: 'none', border: 'none', color: copied ? '#4ade80' : '#444', cursor: 'pointer', padding: '0.25rem 0.5rem', lineHeight: 1, flexShrink: 0, display: 'flex', transition: 'color 0.2s' }}
-                    onMouseEnter={e => { if (!copied) e.currentTarget.style.color = '#fff' }}
-                    onMouseLeave={e => { if (!copied) e.currentTarget.style.color = '#444' }}
-                >
-                    {copied
-                        ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        : <ShareIcon />}
-                </button>
+                <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                    <button
+                        onClick={e => { e.stopPropagation(); setMenuOpen(o => !o) }}
+                        title="menu"
+                        style={{ background: 'none', border: 'none', color: menuOpen ? '#fff' : '#444', cursor: 'pointer', padding: '0.25rem 0.5rem', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = '#444' }}
+                    >
+                        <DotsIcon />
+                    </button>
+                    {menuOpen && (
+                        <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 100, background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: '0.5rem', overflow: 'hidden', minWidth: 160 }}>
+                            <button
+                                onClick={handleShare}
+                                style={{ width: '100%', background: 'none', border: 'none', color: copied ? '#4ade80' : '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#252525' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                            >
+                                {copied
+                                    ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                    : <ShareIcon />
+                                }
+                                {copied ? 'Скопировано' : 'Поделиться'}
+                            </button>
+                            <button
+                                onClick={handleGoToAuthor}
+                                style={{ width: '100%', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#252525' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                            >
+                                <AuthorIcon />
+                                Страница автора
+                            </button>
+                            {!showSave && <button
+                                onClick={e => { e.stopPropagation(); setEditOpen(true) }}
+                                title="edit vinyl"
+                                style={{ width: '100%', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}                                onMouseEnter={e => { e.currentTarget.style.background = '#252525' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                            >
+                                <PencilIcon />
+                                Редактировать
+                            </button>}
+                        </div>
+                    )}
+                </div>
                 {!showSave && (
                     <>
-                        <button
+                        {/* <button
                             onClick={e => { e.stopPropagation(); setEditOpen(true) }}
                             title="edit vinyl"
                             style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', padding: '0.25rem 0.5rem', lineHeight: 1, flexShrink: 0, transition: 'color 0.2s', display: 'flex' }}
@@ -468,7 +539,7 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
                             onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
                         >
                             <PencilIcon />
-                        </button>
+                        </button> */}
                         {confirmDelete ? (
                             <>
                                 <button
