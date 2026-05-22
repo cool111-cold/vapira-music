@@ -47,10 +47,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [durationSec, setDurationSec] = useState(0);
-    const [volume, setVolumeState] = useState(1);
+    const VOLUME_KEY = 'player_volume';
+    const savedVolume = parseFloat(localStorage.getItem(VOLUME_KEY) ?? '1');
+    const initialVolume = isNaN(savedVolume) ? 1 : Math.max(0, Math.min(1, savedVolume));
+    const [volume, setVolumeState] = useState(initialVolume);
     const [collapsed, setCollapsed] = useState(false);
     const [selectedVinylId, setSelectedVinylId] = useState<number | null>(null);
-    const volumeRef = useRef(1);
+    const volumeRef = useRef(initialVolume);
 
     const howlRef = useRef<Howl | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -208,6 +211,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const clamped = Math.max(0, Math.min(1, v));
         volumeRef.current = clamped;
         setVolumeState(clamped);
+        localStorage.setItem(VOLUME_KEY, String(clamped));
         if (howlRef.current) howlRef.current.volume(clamped);
     }, []);
 

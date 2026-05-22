@@ -589,8 +589,9 @@ export const ProfilePage = () => {
     }
 
     const handleLogout = () => {
-        logout()
-        navigate('/login')
+        localStorage.removeItem('player_volume');
+        logout();
+        navigate('/login');
     }
 
     const bgImage = user?.bg_image_url || DEFAULT_BG
