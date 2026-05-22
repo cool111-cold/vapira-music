@@ -3,7 +3,6 @@ import { createBrowserRouter } from "react-router-dom";
 import { Layout } from "./layout";
 import { MainPage } from "../pages/main";
 import { TrackPage } from "../pages/track";
-import { UploadPage } from "../pages/upload";
 import { LibraryPage } from "../pages/library";
 import { TracksPage } from "../pages/library/tracks";
 import { SavedPage } from "../pages/library/saved";
@@ -16,7 +15,6 @@ export const routes = createBrowserRouter([
         children: [
             { path: "/", Component: MainPage },
             { path: "/track/:id", Component: TrackPage },
-            { path: "/upload", Component: UploadPage },
             { path: "/library", Component: LibraryPage },
             { path: "/tracks", Component: TracksPage },
             { path: "/saved", Component: SavedPage },

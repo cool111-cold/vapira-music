@@ -1,7 +1,7 @@
 import React from 'react';
 import { Environment } from '@react-three/drei';
 import Record from '../../Record';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import RightArrowIcon from '../../media/icons/right-arrow.svg';
 import LeftArrowIcon from '../../media/icons/left-arrow.svg';
@@ -12,8 +12,6 @@ import './index.css';
 import { PlayerTwo } from '../../components/player/player-two';
 import { useAuth } from '../../context/auth-context';
 import { useAudioPlayer } from '../../context/audio-context';
-
-const SPACING = 0.17;
 
 interface VinylApi {
     id: number
@@ -72,6 +70,8 @@ const toDisplay = (v: VinylApi, i: number): VinylDisplay => ({
     videoCover: toUrl(v.video_cover),
 })
 
+const SPACING = 0.17;
+
 const scaleForDist = (absDist: number) => {
     if (absDist < 0.5) return 1.2;
     if (absDist < 1.5) return 0.015 / 0.022;
@@ -80,13 +80,13 @@ const scaleForDist = (absDist: number) => {
 };
 
 const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: number; counter: number; item: VinylDisplay; click: () => void; openFull: boolean }) => {
-    const { viewport } = useThree();
     const groupRef = useRef<THREE.Group>(null);
-    const animX = useRef((index - (counter - 1)) * SPACING * viewport.width);
-    const animScale = useRef(scaleForDist(Math.abs(index - (counter - 1))));
+    const animX = useRef<number | null>(null);
+    const animScale = useRef<number | null>(null);
     const animRotY = useRef(0);
     const targetRotY = useRef(0);
     const prevCounter = useRef(counter);
+    const prevVW = useRef(0);
 
     useEffect(() => {
         if (openFull && index === counter - 1) {
@@ -94,8 +94,10 @@ const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: numb
         }
     }, [openFull]);
 
-    useFrame(() => {
+    useFrame((state) => {
         if (!groupRef.current) return;
+
+        const vw = state.viewport.width;
 
         if (prevCounter.current !== counter) {
             const dir = counter > prevCounter.current ? 1 : -1;
@@ -108,25 +110,32 @@ const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: numb
 
         if (openFull) {
             if (index === counter - 1) {
-                targetX = -viewport.width * 0.035;
+                targetX = -vw * 0.035;
                 targetScale = 0.9;
             } else {
                 const dir = index < counter - 1 ? -1 : 1;
-                targetX = dir * viewport.width * 2;
+                targetX = dir * vw * 2;
                 targetScale = 0;
             }
         } else {
-            targetX = (index - (counter - 1)) * SPACING * viewport.width;
-            const absDist = Math.abs(targetX) / (SPACING * viewport.width);
+            targetX = (index - (counter - 1)) * SPACING * vw;
+            const absDist = Math.abs(targetX) / (SPACING * vw);
             targetScale = scaleForDist(absDist);
         }
 
+        // Snap on first frame or viewport resize to avoid jump
+        if (animX.current === null || prevVW.current !== vw) {
+            animX.current = targetX;
+            animScale.current = targetScale;
+            prevVW.current = vw;
+        }
+
         animX.current = THREE.MathUtils.lerp(animX.current, targetX, 0.1);
-        animScale.current = THREE.MathUtils.lerp(animScale.current, targetScale, 0.1);
+        animScale.current = THREE.MathUtils.lerp(animScale.current!, targetScale, 0.1);
         animRotY.current = THREE.MathUtils.lerp(animRotY.current, targetRotY.current, 0.07);
 
         groupRef.current.position.x = animX.current;
-        groupRef.current.scale.setScalar(Math.max(0, animScale.current));
+        groupRef.current.scale.setScalar(Math.max(0, animScale.current!));
         groupRef.current.rotation.y = animRotY.current;
     });
 
@@ -424,19 +433,19 @@ export const VinylPage = () => {
 
     if (loading) {
         return (
-            <div style={{ width: '100vw', height: '100vh', backgroundColor: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <PlayerTwo top />
-                <p style={{ color: '#555', fontSize: '0.875rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>loading...</p>
+                <p style={{ color: '#555', fontSize: '0.875rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>загрузка...</p>
             </div>
         )
     }
 
     if (vinyls.length === 0) {
         return (
-            <div style={{ width: '100vw', height: '100vh', backgroundColor: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
                 <PlayerTwo top />
-                <p style={{ color: '#555', fontSize: '0.875rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>no vinyls yet</p>
-                <a href="/upload" style={{ color: '#FD5E5E', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>create one →</a>
+                <p style={{ color: '#555', fontSize: '0.875rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>нет пластинок</p>
+                <a href="/upload" style={{ color: '#FD5E5E', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>создать →</a>
             </div>
         )
     }

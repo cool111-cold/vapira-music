@@ -10,7 +10,8 @@ import { AuthProvider, useAuth } from './context/auth-context';
 import { SavedProvider } from './context/saved-context';
 import { MyProvider } from './context';
 import { PlayerTwo } from './components/player/player-two';
-import { UploadPage } from './pages/upload';
+import { UploadTrackPage } from './pages/upload/track';
+import { CreateVinylPage } from './pages/upload/vinyl';
 import { AuthPage } from './pages/auth';
 import { LibraryPage } from './pages/library';
 import { TracksPage } from './pages/library/tracks';
@@ -78,7 +79,8 @@ export default function App() {
               <Route path="/login" element={<AuthPage />} />
               <Route path="/" element={<ProtectedRoute><PlayerScene /></ProtectedRoute>} />
               <Route path="/vinyl" element={<ProtectedRoute><VinylPage /></ProtectedRoute>} />
-              <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+              <Route path="/upload/track" element={<ProtectedRoute><UploadTrackPage /></ProtectedRoute>} />
+              <Route path="/upload/vinyl" element={<ProtectedRoute><CreateVinylPage /></ProtectedRoute>} />
               <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
               <Route path="/tracks" element={<ProtectedRoute><TracksPage /></ProtectedRoute>} />
               <Route path="/saved" element={<ProtectedRoute><SavedPage /></ProtectedRoute>} />

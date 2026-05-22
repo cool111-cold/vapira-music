@@ -245,7 +245,7 @@ const UploadedTracksList = ({ token }: { token: string }) => {
             {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
             {!loading && tracks.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет загруженных треков</p>}
             {tracks.map(t => <TrackRow key={t.id} track={t} onDelete={handleDelete} />)}
-            <AddBtn label="+ добавить трек" onClick={() => navigate('/upload')} />
+            <AddBtn label="+ добавить трек" onClick={() => navigate('/upload/track')} />
         </>
     )
 }
@@ -349,7 +349,7 @@ const UploadedVinylsList = ({ token }: { token: string }) => {
             {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>звгрузка...</p>}
             {!loading && vinyls.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет загруженных пластинок</p>}
             {vinyls.map(v => <VinylRow key={v.id} vinyl={v} token={token} onDeleted={handleDeleted} />)}
-            <AddBtn label="+ добавить виниловую пластинку" onClick={() => navigate('/upload')} />
+            <AddBtn label="+ добавить виниловую пластинку" onClick={() => navigate('/upload/vinyl')} />
         </>
     )
 }
