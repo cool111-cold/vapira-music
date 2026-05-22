@@ -39,6 +39,29 @@ export const PlayerScene = () => {
     const [loading, setLoading] = useState(false);
     const sharedTrackHandledRef = useRef(false);
 
+    const handleTrackClick = async (track: TrackItem) => {
+        const audioIndex = audioTracks.findIndex(t => t.id === String(track.id));
+        if (audioIndex !== -1) {
+            playTrack(audioIndex);
+            return;
+        }
+        try {
+            const resp = await fetch(`${BASE_URL}/tracks/${track.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await resp.json();
+            if (data?.stream_url) {
+                loadAndPlayExternal({
+                    id: String(data.id),
+                    name: data.title,
+                    artist: data.artist,
+                    cover: data.avatar_url ?? undefined,
+                    src: `${BASE_URL}${data.stream_url}`,
+                });
+            }
+        } catch {}
+    };
+
     useEffect(() => {
         const trackId = searchParams.get('trackId');
         if (!trackId || !token || sharedTrackHandledRef.current) return;
@@ -184,19 +207,17 @@ export const PlayerScene = () => {
                             {tracks.length === 0 ? (
                                 <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>нет треков</p>
                             ) : tracks.map(track => {
-                                const audioIndex = audioTracks.findIndex(t => t.id === String(track.id));
                                 const isActive = currentTrack?.id === String(track.id);
                                 return (
                                     <div
                                         key={track.id}
-                                        onClick={() => audioIndex !== -1 && playTrack(audioIndex)}
+                                        onClick={() => handleTrackClick(track)}
                                         style={{
                                             display: 'flex',
                                             alignItems: 'center',
                                             padding: '0.7rem 0',
                                             borderBottom: '1px solid rgb(255, 255, 255)',
-                                            cursor: audioIndex !== -1 ? 'pointer' : 'default',
-                                            opacity: audioIndex === -1 ? 0.35 : 1,
+                                            cursor: 'pointer',
                                         }}
                                     >
                                         <div>

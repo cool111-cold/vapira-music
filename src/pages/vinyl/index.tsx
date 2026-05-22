@@ -355,7 +355,7 @@ const AnimatedCounter = ({ value }: { value: number }) => {
 
 export const VinylPage = () => {
     const { token } = useAuth()
-    const { tracks: audioTracks, playTrack, currentTrack, setSelectedVinylId } = useAudioPlayer()
+    const { tracks: audioTracks, playTrack, currentTrack, setSelectedVinylId, loadAndPlayExternal } = useAudioPlayer()
     const [searchParams] = useSearchParams()
     const [vinyls, setVinyls] = useState<VinylDisplay[]>([])
     const [loading, setLoading] = useState(true)
@@ -467,6 +467,29 @@ export const VinylPage = () => {
         setTracks(prev => prev.filter(t => t.id !== trackId))
     }
 
+    const handleTrackClick = async (track: TrackApi) => {
+        const audioIndex = audioTracks.findIndex(t => t.id === String(track.id))
+        if (audioIndex !== -1) {
+            playTrack(audioIndex)
+            return
+        }
+        try {
+            const resp = await fetch(`https://vapira.ru/tracks/${track.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            const data = await resp.json()
+            if (data?.stream_url) {
+                loadAndPlayExternal({
+                    id: String(data.id),
+                    name: data.title,
+                    artist: data.artist,
+                    cover: data.avatar_url ?? undefined,
+                    src: `https://vapira.ru${data.stream_url}`,
+                })
+            }
+        } catch {}
+    }
+
     const handleSaveSharedVinyl = async () => {
         if (!token || savingVinyl || !currentVinyl) return
         setSavingVinyl(true)
@@ -566,17 +589,15 @@ export const VinylPage = () => {
                             ) : tracks.length === 0 ? (
                                 <p style={{ color: '#fff', fontSize: '0.875rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>no tracks</p>
                             ) : tracks.map(track => {
-                                const audioIndex = audioTracks.findIndex(t => t.id === String(track.id));
                                 const isActive = currentTrack?.id === String(track.id);
                                 return (
                                 <div key={track.id}
-                                    onClick={() => audioIndex !== -1 && playTrack(audioIndex)}
+                                    onClick={() => handleTrackClick(track)}
                                     style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                         padding: '0.75rem 0',
                                         borderBottom: `1px solid ${currentVinyl?.bgColor ?? '#333'}44`,
-                                        cursor: audioIndex !== -1 ? 'pointer' : 'default',
-                                        opacity: audioIndex === -1 ? 0.5 : 1,
+                                        cursor: 'pointer',
                                     }}>
                                     <div>
                                         <p style={{ color: isActive ? currentVinyl?.bgColor ?? '#FD5E5E' : '#fff', fontSize: '0.9rem', fontWeight: 600, margin: 0 }}>{track.title}</p>
