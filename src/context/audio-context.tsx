@@ -135,16 +135,20 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((r) => r.json())
-            .then((data) =>
-                data.map((t: { id: number; title: string; artist: string; avatar_url?: string; stream_url: string }) => ({
+            .then((data) => {
+                const saved = data.map((t: { id: number; title: string; artist: string; avatar_url?: string; stream_url: string }) => ({
                     id: String(t.id),
                     name: t.title,
                     artist: t.artist,
                     cover: t.avatar_url,
                     src: `https://vapira.ru${t.stream_url}`,
-                }))
-            )
-            .then(setTracks);
+                }));
+                // Preserve any externally-loaded tracks not in saved (e.g. from share links)
+                setTracks(prev => {
+                    const externals = prev.filter(p => !saved.some((s: Track) => s.id === p.id));
+                    return [...saved, ...externals];
+                });
+            });
     }, [token]);
 
     // Load first track silently on initial fetch; reset on logout.

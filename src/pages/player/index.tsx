@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import VinylTransport from '../../VinylTransport';
 import { PlayerTwo } from '../../components/player/player-two';
 import { useAuth } from '../../context/auth-context';
@@ -31,11 +31,32 @@ interface TrackItem {
 export const PlayerScene = () => {
     const navigate = useNavigate();
     const { token } = useAuth();
-    const { tracks: audioTracks, currentTrack, isPlaying, toggle, playTrack, selectedVinylId } = useAudioPlayer();
+    const { tracks: audioTracks, currentTrack, isPlaying, toggle, playTrack, selectedVinylId, loadAndPlayExternal } = useAudioPlayer();
+    const [searchParams] = useSearchParams();
 
     const [vinyl, setVinyl] = useState<VinylInfo | null>(null);
     const [tracks, setTracks] = useState<TrackItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const sharedTrackHandledRef = useRef(false);
+
+    useEffect(() => {
+        const trackId = searchParams.get('trackId');
+        if (!trackId || !token || sharedTrackHandledRef.current) return;
+        sharedTrackHandledRef.current = true;
+        fetch(`${BASE_URL}/tracks/${trackId}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then((t: any) => {
+                if (!t?.id) return;
+                loadAndPlayExternal({
+                    id: String(t.id),
+                    name: t.title,
+                    artist: t.artist,
+                    cover: t.avatar_url ?? undefined,
+                    src: `${BASE_URL}${t.stream_url}`,
+                });
+            })
+            .catch(() => {});
+    }, [token, searchParams]);
 
     useEffect(() => {
         if (selectedVinylId === null || !token) {

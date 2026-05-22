@@ -12,7 +12,7 @@ import './index.css';
 import { PlayerTwo } from '../../components/player/player-two';
 import { useAuth } from '../../context/auth-context';
 import { useAudioPlayer } from '../../context/audio-context';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 interface VinylApi {
     id: number
@@ -356,6 +356,7 @@ const AnimatedCounter = ({ value }: { value: number }) => {
 export const VinylPage = () => {
     const { token } = useAuth()
     const { tracks: audioTracks, playTrack, currentTrack, setSelectedVinylId } = useAudioPlayer()
+    const [searchParams] = useSearchParams()
     const [vinyls, setVinyls] = useState<VinylDisplay[]>([])
     const [loading, setLoading] = useState(true)
     const [tracks, setTracks] = useState<TrackApi[]>([])
@@ -366,15 +367,50 @@ export const VinylPage = () => {
     const [showCover, setShowCover] = useState(true);
     const [glitching, setGlitching] = useState(false);
     const [showTracks, setShowTracks] = useState(false);
+    const [sharedVinylId, setSharedVinylId] = useState<number | null>(null);
+    const [savingVinyl, setSavingVinyl] = useState(false);
+    const [vinylSaved, setVinylSaved] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         if (!token) return
+        const vinylId = searchParams.get('vinylId')
         fetch('https://vapira.ru/vinyl-library', {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then(r => r.json())
-            .then((data: VinylApi[]) => setVinyls(data.map(toDisplay)))
+            .then(async (data: VinylApi[]) => {
+                const displayed = data.map(toDisplay)
+
+                if (!vinylId) {
+                    setVinyls(displayed)
+                    return
+                }
+
+                const idx = displayed.findIndex(v => String(v.id) === vinylId)
+                if (idx >= 0) {
+                    setVinyls(displayed)
+                    setCounter(idx + 1)
+                    return
+                }
+
+                // Vinyl not in library — fetch it directly so shared links work for any user
+                try {
+                    const r = await fetch(`https://vapira.ru/vinyl/${vinylId}`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                    })
+                    if (r.ok) {
+                        const vinyl: VinylApi = await r.json()
+                        const withShared = [...displayed, toDisplay(vinyl, displayed.length)]
+                        setVinyls(withShared)
+                        setCounter(withShared.length)
+                        setSharedVinylId(vinyl.id)
+                        return
+                    }
+                } catch {}
+
+                setVinyls(displayed)
+            })
             .catch(() => {})
             .finally(() => setLoading(false))
     }, [token])
@@ -429,6 +465,20 @@ export const VinylPage = () => {
             headers: { Authorization: `Bearer ${token}` },
         })
         setTracks(prev => prev.filter(t => t.id !== trackId))
+    }
+
+    const handleSaveSharedVinyl = async () => {
+        if (!token || savingVinyl || !currentVinyl) return
+        setSavingVinyl(true)
+        try {
+            const res = await fetch(`https://vapira.ru/saved-vinyls/${currentVinyl.id}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (res.ok) setVinylSaved(true)
+        } finally {
+            setSavingVinyl(false)
+        }
     }
 
     const currentVinyl = vinyls[counter - 1]
@@ -544,6 +594,16 @@ export const VinylPage = () => {
                         </div>
                     )}
                     <div style={{display: 'flex', flexDirection: 'row', width: 'auto', gap: 12}}>
+                        {sharedVinylId === currentVinyl?.id && !vinylSaved && (
+                            <button
+                                className="purchase-btn"
+                                onClick={handleSaveSharedVinyl}
+                                disabled={savingVinyl}
+                                style={{ opacity: savingVinyl ? 0.6 : 1 }}
+                            >
+                                {savingVinyl ? '...' : '♥ СОХРАНИТЬ'}
+                            </button>
+                        )}
                         <button className="purchase-btn" onClick={() => setShowTracks((e) => !e)}>{showTracks ? "ИНФОРМАЦИЯ" : "ТРЕКИ"}</button>
                         <button className="purchase-btn" onClick={() => { setSelectedVinylId(currentVinyl?.id ?? null); navigate('/'); }}>{"СЛУШАТЬ"} <img src={Arrow}/></button>
                     </div>
