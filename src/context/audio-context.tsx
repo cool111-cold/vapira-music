@@ -34,6 +34,8 @@ interface AudioContextType {
     prev: () => void;
     playTrack: (index: number) => void;
     loadAndPlayExternal: (track: Track) => void;
+    selectedVinylId: number | null;
+    setSelectedVinylId: (id: number | null) => void;
 }
 
 const AudioCtx = createContext<AudioContextType | undefined>(undefined);
@@ -47,6 +49,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [durationSec, setDurationSec] = useState(0);
     const [volume, setVolumeState] = useState(1);
     const [collapsed, setCollapsed] = useState(false);
+    const [selectedVinylId, setSelectedVinylId] = useState<number | null>(null);
     const volumeRef = useRef(1);
 
     const howlRef = useRef<Howl | null>(null);
@@ -248,6 +251,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 prev,
                 playTrack,
                 loadAndPlayExternal,
+                selectedVinylId,
+                setSelectedVinylId,
             }}
         >
             {children}

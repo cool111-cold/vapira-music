@@ -7,16 +7,21 @@ interface VinylTransportProps {
   position?: THREE.Vector3 | number[];
   scale?: number | number[];
   centerImageUrl?: string;
+  playing?: boolean;
   click?: () => void;
 }
 
 const LABEL_RADIUS = 0.06;
 
-export default function VinylTransport({ position = [0, 0, 0], scale = 1, centerImageUrl, click }: VinylTransportProps) {
+export default function VinylTransport({ position = [0, 0, 0], scale = 1, centerImageUrl, playing = false, click }: VinylTransportProps) {
   const { scene } = useGLTF('/vinyl_transport.glb');
   const discRef = useRef<THREE.Object3D | null>(null);
   const labelMeshRef = useRef<THREE.Mesh | null>(null);
-  const isPlaying = useRef(false);
+  const isPlaying = useRef(playing);
+
+  useEffect(() => {
+    isPlaying.current = playing;
+  }, [playing]);
 
   useEffect(() => {
     scene.traverse((child) => {
@@ -74,7 +79,7 @@ export default function VinylTransport({ position = [0, 0, 0], scale = 1, center
 
   useFrame((_, delta) => {
     if (isPlaying.current && discRef.current) {
-      discRef.current.rotation.z += delta * 2;
+      discRef.current.rotation.z -= delta * 2;
     }
   });
 
@@ -87,13 +92,8 @@ export default function VinylTransport({ position = [0, 0, 0], scale = 1, center
       onClick={(e: any) => {
         e.stopPropagation();
         if (e.object.name === 'Needle_low_low_TurnTable_Detail_MAT_0') {
-          isPlaying.current = !isPlaying.current;
           click?.();
         }
-      }}
-      onPointerOver={(e: any) => {
-        e.stopPropagation();
-        console.log('mesh:', e.object.name, '| parent:', e.object.parent?.name);
       }}
     />
   );

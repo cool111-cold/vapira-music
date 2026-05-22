@@ -526,6 +526,23 @@ interface FavTrack {
 const DEFAULT_BG = '/images/back.jpg'
 const DEFAULT_AVATAR = '/images/ava.jpg'
 
+const PageLoader = () => (
+    <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        backgroundColor: '#000',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+        <div style={{
+            width: 36, height: 36,
+            border: '2px solid #222',
+            borderTop: '2px solid #fff',
+            borderRadius: '50%',
+            animation: 'profile-spin 0.75s linear infinite',
+        }} />
+        <style>{`@keyframes profile-spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+)
+
 export const ProfilePage = () => {
     const { user, token, logout } = useAuth()
     const { loadAndPlayExternal } = useAudioPlayer()
@@ -535,22 +552,32 @@ export const ProfilePage = () => {
     const [editOpen, setEditOpen] = useState(false)
     const [favTrack, setFavTrack] = useState<FavTrack | null>(null)
     const [favVinyl, setFavVinyl] = useState<VinylApi | null>(null)
+    const [favTrackLoading, setFavTrackLoading] = useState(false)
+    const [favVinylLoading, setFavVinylLoading] = useState(false)
 
     useEffect(() => {
-        if (!user?.favorite_track_id || !token) { setFavTrack(null); return }
+        if (!user?.favorite_track_id || !token) { setFavTrack(null); setFavTrackLoading(false); return }
+        setFavTrackLoading(true)
         fetch(`${BASE}/tracks/${user.favorite_track_id}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(setFavTrack)
             .catch(() => setFavTrack(null))
+            .finally(() => setFavTrackLoading(false))
     }, [user?.favorite_track_id, token])
 
     useEffect(() => {
-        if (!user?.favorite_vinyl_id || !token) { setFavVinyl(null); return }
+        if (!user?.favorite_vinyl_id || !token) { setFavVinyl(null); setFavVinylLoading(false); return }
+        setFavVinylLoading(true)
         fetch(`${BASE}/vinyl/${user.favorite_vinyl_id}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.ok ? r.json() : Promise.reject())
             .then(setFavVinyl)
             .catch(() => setFavVinyl(null))
+            .finally(() => setFavVinylLoading(false))
     }, [user?.favorite_vinyl_id, token])
+
+    const pageLoading = (!!token && !user) || favTrackLoading || favVinylLoading
+
+    if (pageLoading) return <PageLoader />
 
     const handleMainTab = (tab: MainTab) => {
         if (mainTab === tab) {

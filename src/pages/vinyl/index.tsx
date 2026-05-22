@@ -12,6 +12,7 @@ import './index.css';
 import { PlayerTwo } from '../../components/player/player-two';
 import { useAuth } from '../../context/auth-context';
 import { useAudioPlayer } from '../../context/audio-context';
+import { useNavigate } from 'react-router-dom';
 
 interface VinylApi {
     id: number
@@ -354,7 +355,7 @@ const AnimatedCounter = ({ value }: { value: number }) => {
 
 export const VinylPage = () => {
     const { token } = useAuth()
-    const { tracks: audioTracks, playTrack, currentTrack } = useAudioPlayer()
+    const { tracks: audioTracks, playTrack, currentTrack, setSelectedVinylId } = useAudioPlayer()
     const [vinyls, setVinyls] = useState<VinylDisplay[]>([])
     const [loading, setLoading] = useState(true)
     const [tracks, setTracks] = useState<TrackApi[]>([])
@@ -365,6 +366,7 @@ export const VinylPage = () => {
     const [showCover, setShowCover] = useState(true);
     const [glitching, setGlitching] = useState(false);
     const [showTracks, setShowTracks] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!token) return
@@ -541,7 +543,10 @@ export const VinylPage = () => {
                             })}
                         </div>
                     )}
-                    <button className="purchase-btn" onClick={() => setShowTracks((e) => !e)}>{showTracks ? "INFO" : "LISTEN"} <img src={Arrow}/></button>
+                    <div style={{display: 'flex', flexDirection: 'row', width: 'auto', gap: 12}}>
+                        <button className="purchase-btn" onClick={() => setShowTracks((e) => !e)}>{showTracks ? "ИНФОРМАЦИЯ" : "ТРЕКИ"}</button>
+                        <button className="purchase-btn" onClick={() => { setSelectedVinylId(currentVinyl?.id ?? null); navigate('/'); }}>{"СЛУШАТЬ"} <img src={Arrow}/></button>
+                    </div>
                 </div>
             </div>
 
