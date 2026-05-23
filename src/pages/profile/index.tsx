@@ -819,7 +819,9 @@ export const ProfilePage = () => {
 
             {/* Favourite vinyl — bottom left */}
             {favVinyl && (
-                <div style={{
+                <div
+                    onClick={() => navigate(`/vinyl?vinylId=${favVinyl.id}`)}
+                    style={{
                     position: 'absolute',
                     top: '55vh',
                     left: '5vw',
@@ -830,7 +832,7 @@ export const ProfilePage = () => {
                     backgroundColor: '#ffffff9e',
                     borderRadius: 100,
                     padding: 15,
-                    cursor: 'default',
+                    cursor: 'pointer',
                 }}>
                     <VinylRecord cover={favVinyl.cover ? `${BASE}${favVinyl.cover}` : undefined} />
                     <div style={{ flex: 1, minWidth: 0 }}>

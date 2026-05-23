@@ -29,8 +29,65 @@ interface FavTrack {
     stream_url: string
 }
 
-type MainTab = 'tracks' | 'vinyls' | null
-type SubTab = 'saved' | 'uploaded'
+type MainTab = 'tracks' | 'vinyls' | 'social' | null
+type SubTab = 'saved' | 'uploaded' | 'subscriptions' | 'subscribers'
+
+interface SocialUser {
+    id: string | number
+    name?: string
+    email: string
+    avatar_url?: string
+}
+
+const SocialUserRow = ({ user, onClick }: { user: SocialUser; onClick: () => void }) => (
+    <div
+        onClick={onClick}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
+    >
+        <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#222', flexShrink: 0 }}>
+            {user.avatar_url && <img src={user.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name ?? user.email}
+            </div>
+            {user.name && <div style={{ color: '#555', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>}
+        </div>
+    </div>
+)
+
+const UserSocialList = ({ token, endpoint, emptyText, showCount }: { token: string; endpoint: string; emptyText: string; showCount?: boolean }) => {
+    const navigate = useNavigate()
+    const [users, setUsers] = useState<SocialUser[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        setLoading(true)
+        fetch(`${BASE}${endpoint}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setUsers(Array.isArray(data) ? data : []))
+            .catch(() => setUsers([]))
+            .finally(() => setLoading(false))
+    }, [endpoint, token])
+
+    const count = users.length
+    const countLabel = count === 1 ? 'подписчик' : count >= 2 && count <= 4 ? 'подписчика' : 'подписчиков'
+
+    return (
+        <>
+            {showCount && !loading && count > 0 && (
+                <p style={{ color: '#555', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                    {count} {countLabel}
+                </p>
+            )}
+            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
+            {!loading && count === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>{emptyText}</p>}
+            {users.map(u => (
+                <SocialUserRow key={String(u.id)} user={u} onClick={() => navigate(`/users/${u.id}`)} />
+            ))}
+        </>
+    )
+}
 
 const TabBtn = ({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) => (
     <button
@@ -145,7 +202,7 @@ const PageLoader = () => (
 
 export const UserProfilePage = () => {
     const { id } = useParams<{ id: string }>()
-    const { token } = useAuth()
+    const { token, user: currentUser } = useAuth()
     const { loadAndPlayExternal } = useAudioPlayer()
     const navigate = useNavigate()
 
@@ -201,7 +258,7 @@ export const UserProfilePage = () => {
             setMainTab(null)
         } else {
             setMainTab(tab)
-            setSubTab('uploaded')
+            setSubTab(tab === 'social' ? 'subscriptions' : 'uploaded')
         }
     }
 
@@ -276,10 +333,12 @@ export const UserProfilePage = () => {
 
             {/* Favourite vinyl — bottom left */}
             {favVinyl && (
-                <div style={{
+                <div
+                    onClick={() => navigate(`/vinyl?vinylId=${favVinyl.id}`)}
+                    style={{
                     position: 'absolute', top: '55vh', left: '5vw',
                     display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12,
-                    backgroundColor: '#ffffff9e', borderRadius: 100, padding: 15,
+                    backgroundColor: '#ffffff9e', borderRadius: 100, padding: 15, cursor: 'pointer',
                 }}>
                     <VinylRecord cover={favVinyl.cover ? `${BASE}${favVinyl.cover}` : undefined} />
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -327,9 +386,10 @@ export const UserProfilePage = () => {
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
                         <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                         <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
+                        <TabBtn active={mainTab === 'social'} onClick={() => handleMainTab('social')} label="Подписки" />
                     </div>
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
-                    {subscriptionLoaded && (
+                    {subscriptionLoaded && String(currentUser?.id) !== String(id) && (
                         <div>
                             {isSubscribed ? (
                                 <button
@@ -391,6 +451,22 @@ export const UserProfilePage = () => {
                         )}
                         {subTab === 'saved' && (
                             <UserVinylsList userId={id} token={token} endpoint={`/users/${id}/saved-vinyls`} />
+                        )}
+                    </div>
+                )}
+
+                {/* Social section */}
+                {mainTab === 'social' && id && token && (
+                    <div>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                            <TabBtn active={subTab === 'subscriptions'} onClick={() => setSubTab('subscriptions')} label="Подписки" />
+                            <TabBtn active={subTab === 'subscribers'} onClick={() => setSubTab('subscribers')} label="Подписчики" />
+                        </div>
+                        {subTab === 'subscriptions' && (
+                            <UserSocialList token={token} endpoint={`/users/${id}/subscriptions`} emptyText="нет подписок" />
+                        )}
+                        {subTab === 'subscribers' && (
+                            <UserSocialList token={token} endpoint={`/users/${id}/subscribers`} emptyText="нет подписчиков" showCount />
                         )}
                     </div>
                 )}
