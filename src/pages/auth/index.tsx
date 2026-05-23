@@ -259,6 +259,16 @@ export const AuthPage = () => {
             } else {
                 await register(username, email, password);
             }
+            const token = localStorage.getItem('vapira_token');
+            if (token) {
+                const me = await fetch('https://vapira.ru/auth/me', {
+                    headers: { Authorization: `Bearer ${token}` },
+                }).then(r => r.ok ? r.json() : null).catch(() => null);
+                if (me?.is_admin === 1) {
+                    navigate('/admin');
+                    return;
+                }
+            }
             navigate('/');
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Произошла ошибка');

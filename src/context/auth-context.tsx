@@ -8,6 +8,7 @@ interface User {
     bg_image_url?: string;
     favorite_track_id?: number | null;
     favorite_vinyl_id?: number | null;
+    is_admin?: number;
 }
 
 export interface UserUpdate {

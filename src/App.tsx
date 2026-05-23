@@ -17,10 +17,18 @@ import { SearchPage } from './pages/library/search';
 import { VinylsPage } from './pages/library/vinyls';
 import { ProfilePage } from './pages/profile';
 import { UserProfilePage } from './pages/profile/user-profile';
+import { AdminPage } from './pages/admin';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { token } = useAuth();
     return token ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+    const { token, user } = useAuth();
+    if (!token) return <Navigate to="/login" replace />;
+    if (user && user.is_admin !== 1) return <Navigate to="/" replace />;
+    return <>{children}</>;
 };
 
 export default function App() {
@@ -44,6 +52,7 @@ export default function App() {
               <Route path="/vinyls" element={<ProtectedRoute><VinylsPage /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/users/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+              <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
             </Routes>
           </BrowserRouter>
         </MyProvider>

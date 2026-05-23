@@ -902,6 +902,9 @@ export const ProfilePage = () => {
                             <TabBtn active={mainTab === 'social'} onClick={() => handleMainTab('social')} label="Подписки" />
                         </div>
                         <div style={{ display: 'flex', gap: '0.6rem' }}>
+                            {user?.is_admin === 1 && (
+                                <ActionBtn label="Администратор" onClick={() => navigate('/admin')} />
+                            )}
                             <ActionBtn label="Редактировать профиль" onClick={() => setEditOpen(true)} />
                             <ActionBtn label="Выйти" onClick={handleLogout} danger />
                         </div>
