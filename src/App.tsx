@@ -4,6 +4,7 @@ import { VinylPage } from './pages/vinyl';
 import { AudioProvider } from './context/audio-context';
 import { AuthProvider, useAuth } from './context/auth-context';
 import { SavedProvider } from './context/saved-context';
+import { SavedVinylsProvider } from './context/saved-vinyls-context';
 import { MyProvider } from './context';
 import { PlayerScene } from './pages/player';
 import { UploadTrackPage } from './pages/upload/track';
@@ -27,6 +28,7 @@ export default function App() {
     <AuthProvider>
       <AudioProvider>
         <SavedProvider>
+        <SavedVinylsProvider>
         <MyProvider>
           <BrowserRouter>
             <Routes>
@@ -45,6 +47,7 @@ export default function App() {
             </Routes>
           </BrowserRouter>
         </MyProvider>
+        </SavedVinylsProvider>
         </SavedProvider>
       </AudioProvider>
     </AuthProvider>

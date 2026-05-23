@@ -99,7 +99,7 @@ const UserVinylsList = ({ userId, token, endpoint }: { userId: string; token: st
         <>
             {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
             {!loading && vinyls.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет пластинок</p>}
-            {vinyls.map(v => <VinylRow key={v.id} vinyl={v} token={token} onDeleted={() => {}} />)}
+            {vinyls.map(v => <VinylRow key={v.id} vinyl={v} token={token} onDeleted={() => {}} showSave />)}
         </>
     )
 }
@@ -153,10 +153,9 @@ export const UserProfilePage = () => {
     const [loading, setLoading] = useState(true)
     const [favTrack, setFavTrack] = useState<FavTrack | null>(null)
     const [favVinyl, setFavVinyl] = useState<VinylApi | null>(null)
-    const [isFriend, setIsFriend] = useState(false)
-    const [friendsLoaded, setFriendsLoaded] = useState(false)
+    const [isSubscribed, setIsSubscribed] = useState(false)
+    const [subscriptionLoaded, setSubscriptionLoaded] = useState(false)
     const [actionPending, setActionPending] = useState(false)
-    const [requestSent, setRequestSent] = useState(false)
     const [mainTab, setMainTab] = useState<MainTab>(null)
     const [subTab, setSubTab] = useState<SubTab>('uploaded')
 
@@ -172,13 +171,13 @@ export const UserProfilePage = () => {
 
     useEffect(() => {
         if (!token || !id) return
-        fetch(`${BASE}/friends`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${BASE}/subscriptions`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.ok ? r.json() : [])
-            .then(friends => {
-                setIsFriend(Array.isArray(friends) && friends.some((f: { id: string }) => f.id === id))
-                setFriendsLoaded(true)
+            .then(subs => {
+                setIsSubscribed(Array.isArray(subs) && subs.some((u: { id: string | number }) => String(u.id) === String(id)))
+                setSubscriptionLoaded(true)
             })
-            .catch(() => setFriendsLoaded(true))
+            .catch(() => setSubscriptionLoaded(true))
     }, [id, token])
 
     useEffect(() => {
@@ -206,23 +205,23 @@ export const UserProfilePage = () => {
         }
     }
 
-    const sendFriendRequest = async () => {
-        if (!id || !token || actionPending || requestSent) return
+    const subscribe = async () => {
+        if (!id || !token || actionPending) return
         setActionPending(true)
         try {
-            await fetch(`${BASE}/friends/request/${id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-            setRequestSent(true)
+            const res = await fetch(`${BASE}/subscriptions/${id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+            if (res.ok) setIsSubscribed(true)
         } finally {
             setActionPending(false)
         }
     }
 
-    const removeFriend = async () => {
+    const unsubscribe = async () => {
         if (!id || !token || actionPending) return
         setActionPending(true)
         try {
-            const res = await fetch(`${BASE}/friends/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
-            if (res.ok) setIsFriend(false)
+            const res = await fetch(`${BASE}/subscriptions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+            if (res.ok) setIsSubscribed(false)
         } finally {
             setActionPending(false)
         }
@@ -327,15 +326,14 @@ export const UserProfilePage = () => {
                 <div style={{ width: '100%', display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: mainTab ? '1.5rem' : 0 }}>
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
                         <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.6rem' }}>
                         <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
                     </div>
-                    {/* {friendsLoaded && (
+                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+                    {subscriptionLoaded && (
                         <div>
-                            {isFriend ? (
+                            {isSubscribed ? (
                                 <button
-                                    onClick={removeFriend}
+                                    onClick={unsubscribe}
                                     disabled={actionPending}
                                     style={{
                                         background: 'none', border: '1px solid #333', borderRadius: '0.4rem',
@@ -344,28 +342,25 @@ export const UserProfilePage = () => {
                                         padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1,
                                     }}
                                 >
-                                    {actionPending ? '...' : 'удалить из друзей'}
+                                    {actionPending ? '...' : 'отписаться'}
                                 </button>
                             ) : (
                                 <button
-                                    onClick={sendFriendRequest}
-                                    disabled={actionPending || requestSent}
+                                    onClick={subscribe}
+                                    disabled={actionPending}
                                     style={{
-                                        background: requestSent ? 'none' : '#fff',
-                                        border: requestSent ? '1px solid #333' : 'none',
-                                        borderRadius: '0.4rem',
-                                        color: requestSent ? '#555' : '#000',
-                                        fontSize: '0.75rem', letterSpacing: '0.08em',
-                                        textTransform: 'uppercase',
-                                        cursor: (actionPending || requestSent) ? 'not-allowed' : 'pointer',
+                                        background: '#fff', border: 'none', borderRadius: '0.4rem',
+                                        color: '#000', fontSize: '0.75rem', letterSpacing: '0.08em',
+                                        textTransform: 'uppercase', cursor: actionPending ? 'not-allowed' : 'pointer',
                                         padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1, fontWeight: 600,
                                     }}
                                 >
-                                    {actionPending ? '...' : requestSent ? 'заявка отправлена' : '+ добавить в друзья'}
+                                    {actionPending ? '...' : '+ подписаться'}
                                 </button>
                             )}
                         </div>
-                    )} */}
+                    )}
+                    </div>
                 </div>
 
                 {/* Tracks section */}

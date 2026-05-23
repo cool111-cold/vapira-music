@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context'
+import { useSavedVinyls } from '../../context/saved-vinyls-context'
 import { LibNav } from './lib-nav'
 import { PlayerTwo } from '../../components/player/player-two'
 
@@ -345,6 +346,7 @@ interface VinylRowProps {
 
 export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, showSave, initialSaved }) => {
     const navigate = useNavigate()
+    const { savedVinylIds, toggleSavedVinyl } = useSavedVinyls()
     const [open, setOpen] = useState(false)
     const [tracks, setTracks] = useState<TrackApi[]>([])
     const [tracksLoaded, setTracksLoaded] = useState(false)
@@ -356,10 +358,10 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
     const [editOpen, setEditOpen] = useState(false)
     const [localVinyl, setLocalVinyl] = useState(vinyl)
     const [saving, setSaving] = useState(false)
-    const [saved, setSaved] = useState(initialSaved ?? false)
     const [copied, setCopied] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
+    const saved = savedVinylIds.has(localVinyl.id)
 
     useEffect(() => {
         if (!menuOpen) return
@@ -435,10 +437,8 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
         if (saving) return
         setSaving(true)
         try {
-            const method = saved ? 'DELETE' : 'POST'
-            await fetch(`${BASE}/saved-vinyls/${localVinyl.id}`, { method, headers: { Authorization: `Bearer ${token}` } })
+            await toggleSavedVinyl(localVinyl.id)
             if (saved && initialSaved) onDeleted(localVinyl.id)
-            else setSaved(s => !s)
         } finally {
             setSaving(false)
         }
@@ -587,18 +587,20 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
                                 <div style={{ color: '#fff', fontSize: '0.82rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.title}</div>
                                 <div style={{ color: '#666', fontSize: '0.72rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{track.artist}</div>
                             </div>
-                            <button
-                                onClick={() => handleRemoveTrack(track.id)}
-                                disabled={removingId === track.id}
-                                title="remove from vinyl"
-                                style={{ background: 'none', border: 'none', color: '#444', cursor: removingId === track.id ? 'default' : 'pointer', padding: '0.25rem 0.4rem', lineHeight: 1, transition: 'color 0.2s', display: 'flex' }}
-                                onMouseEnter={e => { if (removingId !== track.id) e.currentTarget.style.color = '#fff' }}
-                                onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
-                            >
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                </svg>
-                            </button>
+                            {!showSave && (
+                                <button
+                                    onClick={() => handleRemoveTrack(track.id)}
+                                    disabled={removingId === track.id}
+                                    title="remove from vinyl"
+                                    style={{ background: 'none', border: 'none', color: '#444', cursor: removingId === track.id ? 'default' : 'pointer', padding: '0.25rem 0.4rem', lineHeight: 1, transition: 'color 0.2s', display: 'flex' }}
+                                    onMouseEnter={e => { if (removingId !== track.id) e.currentTarget.style.color = '#fff' }}
+                                    onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
+                                >
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                    </svg>
+                                </button>
+                            )}
                         </div>
                     ))}
                     {!showSave && (
