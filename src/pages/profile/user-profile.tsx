@@ -249,7 +249,7 @@ export const UserProfilePage = () => {
             </div>
 
             {/* Back button */}
-            {/* <button
+            <button
                 onClick={() => navigate(-1)}
                 style={{
                     position: 'absolute', top: '5rem', left: '2rem',
@@ -260,7 +260,7 @@ export const UserProfilePage = () => {
                 }}
             >
                 ← назад
-            </button> */}
+            </button>
 
             {/* Avatar */}
             <img

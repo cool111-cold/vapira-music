@@ -140,12 +140,39 @@ const BLOCKS = [
     { "color": '#01ff9a' },
 ]
 
+const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+const validatePassword = (v: string): string | null => {
+    if (v.length < 8) return 'Минимум 8 символов';
+    if (!/[A-Z]/.test(v)) return 'Нужна хотя бы одна заглавная буква';
+    if (!/[0-9]/.test(v)) return 'Нужна хотя бы одна цифра';
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(v)) return 'Нужен хотя бы один спецсимвол';
+    return null;
+};
+
+const EyeOpen = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14.3999 12.0294C14.3999 13.3192 13.3254 14.3647 11.9999 14.3647C10.6744 14.3647 9.5999 13.3192 9.5999 12.0294C9.5999 10.7396 10.6744 9.69402 11.9999 9.69402C13.3254 9.69402 14.3999 10.7396 14.3999 12.0294Z" stroke="#888" strokeWidth="2"/>
+        <path d="M2.4 12C2.4 12 5.4 5.1 12 5.1C18.6 5.1 21.6 12 21.6 12C21.6 12 18.6 18.9 12 18.9C5.4 18.9 2.4 12 2.4 12Z" stroke="#888" strokeWidth="2"/>
+    </svg>
+);
+
+const EyeClosed = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.3999 19.5L5.3999 4.5M10.1999 10.4416C9.82648 10.8533 9.5999 11.394 9.5999 11.9863C9.5999 13.2761 10.6744 14.3217 11.9999 14.3217C12.611 14.3217 13.1688 14.0994 13.5926 13.7334M20.4387 14.3217C21.2649 13.0848 21.5999 12.0761 21.5999 12.0761C21.5999 12.0761 19.4153 5.1 11.9999 5.1C11.5836 5.1 11.1838 5.12199 10.7999 5.16349M17.3999 17.3494C16.0225 18.2281 14.2492 18.8495 11.9999 18.8127C4.67683 18.693 2.3999 12.0761 2.3999 12.0761C2.3999 12.0761 3.45776 8.69808 6.5999 6.64332" stroke="#888" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+);
+
 export const AuthPage = () => {
     const [tab, setTab] = useState<'login' | 'register'>('login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [username, setUsername] = useState('');
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -211,6 +238,20 @@ export const AuthPage = () => {
 
     const handleSubmit = async () => {
         setError('');
+        setFieldErrors({});
+
+        if (tab === 'register') {
+            const errors: { email?: string; password?: string; confirmPassword?: string } = {};
+            if (!validateEmail(email)) errors.email = 'Некорректный email';
+            const pwErr = validatePassword(password);
+            if (pwErr) errors.password = pwErr;
+            if (!errors.password && password !== confirmPassword) errors.confirmPassword = 'Пароли не совпадают';
+            if (Object.keys(errors).length > 0) {
+                setFieldErrors(errors);
+                return;
+            }
+        }
+
         setLoading(true);
         try {
             if (tab === 'login') {
@@ -251,7 +292,7 @@ export const AuthPage = () => {
                     {(['login', 'register'] as const).map(t => (
                         <button
                             key={t}
-                            onClick={() => { setTab(t); setError(''); }}
+                            onClick={() => { setTab(t); setError(''); setFieldErrors({}); setConfirmPassword(''); setShowPassword(false); setShowConfirmPassword(false); }}
                             style={{
                                 background: 'none',
                                 border: 'none',
@@ -287,27 +328,73 @@ export const AuthPage = () => {
 
                 <Field label="Email">
                     <input
-                        style={inputStyle}
+                        style={{ ...inputStyle, borderBottomColor: fieldErrors.email ? '#FD5E5E' : '#444' }}
                         type="email"
                         placeholder="you@example.com"
                         value={email}
-                        onChange={e => setEmail(e.target.value)}
+                        onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: undefined })); }}
                         onKeyDown={handleKeyDown}
                         autoComplete="email"
                     />
+                    {fieldErrors.email && (
+                        <span style={{ fontSize: '0.72rem', color: '#FD5E5E', marginTop: '0.3rem' }}>{fieldErrors.email}</span>
+                    )}
                 </Field>
 
                 <Field label="Пароль">
-                    <input
-                        style={inputStyle}
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
-                    />
+                    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <input
+                            style={{ ...inputStyle, borderBottomColor: fieldErrors.password ? '#FD5E5E' : '#444', paddingRight: '2rem' }}
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: undefined })); }}
+                            onKeyDown={handleKeyDown}
+                            autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(v => !v)}
+                            style={{ position: 'absolute', right: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center' }}
+                        >
+                            {showPassword ? <EyeOpen /> : <EyeClosed />}
+                        </button>
+                    </div>
+                    {fieldErrors.password && (
+                        <span style={{ fontSize: '0.72rem', color: '#FD5E5E', marginTop: '0.3rem' }}>{fieldErrors.password}</span>
+                    )}
                 </Field>
+
+                {tab === 'register' && (
+                    <Field label="Подтверждение пароля">
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                            <input
+                                style={{ ...inputStyle, borderBottomColor: fieldErrors.confirmPassword ? '#FD5E5E' : '#444', paddingRight: '2rem' }}
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                value={confirmPassword}
+                                onChange={e => { setConfirmPassword(e.target.value); setFieldErrors(p => ({ ...p, confirmPassword: undefined })); }}
+                                onKeyDown={handleKeyDown}
+                                autoComplete="new-password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(v => !v)}
+                                style={{ position: 'absolute', right: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center' }}
+                            >
+                                {showConfirmPassword ? <EyeOpen /> : <EyeClosed />}
+                            </button>
+                        </div>
+                        {tab === 'register' && !fieldErrors.password && (
+                            <span style={{ fontSize: '0.68rem', color: '#555', marginTop: '0.3rem' }}>
+                                8+ символов, заглавная буква, цифра, спецсимвол
+                            </span>
+                        )}
+                        {fieldErrors.confirmPassword && (
+                            <span style={{ fontSize: '0.72rem', color: '#FD5E5E', marginTop: '0.3rem' }}>{fieldErrors.confirmPassword}</span>
+                        )}
+                    </Field>
+                )}
 
                 {error && (
                     <p style={{ color: '#FD5E5E', fontSize: '0.8rem', marginBottom: '1rem' }}>
