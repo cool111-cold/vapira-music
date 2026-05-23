@@ -278,7 +278,7 @@ const SubscriptionsList = ({ token }: { token: string }) => {
                     isSearching={isSearching}
                     onSubscribe={() => subscribe(u.id)}
                     onUnsubscribe={() => unsubscribe(u.id)}
-                    onClick={() => navigate(`/users/${u.id}`)}
+                    onClick={() => navigate(`/pages/users/${u.id}`)}
                 />
             ))}
         </>
@@ -311,7 +311,7 @@ const SubscribersList = ({ token, userId }: { token: string; userId: string }) =
             {subscribers.map(u => (
                 <div
                     key={u.id}
-                    onClick={() => navigate(`/users/${u.id}`)}
+                    onClick={() => navigate(`/pages/users/${u.id}`)}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
                 >
                     <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#222', flexShrink: 0 }}>
@@ -440,7 +440,7 @@ const UploadedTracksList = ({ token }: { token: string }) => {
         <>
             {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
             {!loading && tracks.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет загруженных треков</p>}
-            <AddBtn label="+ добавить трек" onClick={() => navigate('/upload/track')} />
+            <AddBtn label="+ добавить трек" onClick={() => navigate('/pages/upload/track')} />
             {tracks.map(t => <TrackRow key={t.id} track={t} onDelete={handleDelete} />)}
         </>
     )
@@ -543,7 +543,7 @@ const UploadedVinylsList = ({ token }: { token: string }) => {
         <>
             {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
             {!loading && vinyls.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет загруженных пластинок</p>}
-            <AddBtn label="+ добавить виниловую пластинку" onClick={() => navigate('/upload/vinyl')} />
+            <AddBtn label="+ добавить виниловую пластинку" onClick={() => navigate('/pages/upload/vinyl')} />
             {vinyls.map(v => <VinylRow key={v.id} vinyl={v} token={token} onDeleted={handleDeleted} />)}
         </>
     )
@@ -800,7 +800,7 @@ export const ProfilePage = () => {
     const handleLogout = () => {
         localStorage.removeItem('player_volume');
         logout();
-        navigate('/login');
+        navigate('/pages/login');
     }
 
     const bgImage = user?.bg_image_url || DEFAULT_BG
@@ -935,7 +935,7 @@ export const ProfilePage = () => {
                         </div>
                         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                             {user?.is_admin === 1 && (
-                                <ActionBtn label="Администратор" onClick={() => navigate('/admin')} />
+                                <ActionBtn label="Администратор" onClick={() => navigate('/pages/admin')} />
                             )}
                             <ActionBtn label="Редактировать профиль" onClick={() => setEditOpen(true)} />
                             <ActionBtn label="Выйти" onClick={handleLogout} danger />

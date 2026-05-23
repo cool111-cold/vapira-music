@@ -265,7 +265,7 @@ export const AuthPage = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 }).then(r => r.ok ? r.json() : null).catch(() => null);
                 if (me?.is_admin === 1) {
-                    navigate('/admin');
+                    navigate('/pages/admin');
                     return;
                 }
             }

@@ -180,7 +180,7 @@ export const PlayerScene = () => {
             }}>
                 {selectedVinylId === null ? (
                     <button
-                        onClick={() => navigate('/vinyl')}
+                        onClick={() => navigate('/pages/vinyl')}
                         style={{
                             border: '1px solid rgb(255, 255, 255)',
                             background: 'transparent',
@@ -255,7 +255,7 @@ export const PlayerScene = () => {
                         </div>
 
                         <button
-                            onClick={() => navigate('/vinyl')}
+                            onClick={() => navigate('/pages/vinyl')}
                             style={{
                                 border: '1px solid rgba(255,255,255,0.3)',
                                 background: 'transparent',

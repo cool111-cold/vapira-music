@@ -21,12 +21,12 @@ import { AdminPage } from './pages/admin';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { token } = useAuth();
-    return token ? <>{children}</> : <Navigate to="/login" replace />;
+    return token ? <>{children}</> : <Navigate to="/pages/login" replace />;
 };
 
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
     const { token, user } = useAuth();
-    if (!token) return <Navigate to="/login" replace />;
+    if (!token) return <Navigate to="/pages/login" replace />;
     if (user && user.is_admin !== 1) return <Navigate to="/" replace />;
     return <>{children}</>;
 };
@@ -40,19 +40,19 @@ export default function App() {
         <MyProvider>
           <BrowserRouter>
             <Routes>
-              <Route path="/login" element={<AuthPage />} />
+              <Route path="/pages/login" element={<AuthPage />} />
               <Route path="/" element={<ProtectedRoute><PlayerScene /></ProtectedRoute>} />
-              <Route path="/vinyl" element={<ProtectedRoute><VinylPage /></ProtectedRoute>} />
-              <Route path="/upload/track" element={<ProtectedRoute><UploadTrackPage /></ProtectedRoute>} />
-              <Route path="/upload/vinyl" element={<ProtectedRoute><CreateVinylPage /></ProtectedRoute>} />
-              <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
-              <Route path="/tracks" element={<ProtectedRoute><TracksPage /></ProtectedRoute>} />
-              <Route path="/saved" element={<ProtectedRoute><SavedPage /></ProtectedRoute>} />
-              <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-              <Route path="/vinyls" element={<ProtectedRoute><VinylsPage /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-              <Route path="/users/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
-              <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+              <Route path="/pages/vinyl" element={<ProtectedRoute><VinylPage /></ProtectedRoute>} />
+              <Route path="/pages/upload/track" element={<ProtectedRoute><UploadTrackPage /></ProtectedRoute>} />
+              <Route path="/pages/upload/vinyl" element={<ProtectedRoute><CreateVinylPage /></ProtectedRoute>} />
+              <Route path="/pages/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
+              <Route path="/pages/tracks" element={<ProtectedRoute><TracksPage /></ProtectedRoute>} />
+              <Route path="/pages/saved" element={<ProtectedRoute><SavedPage /></ProtectedRoute>} />
+              <Route path="/pages/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+              <Route path="/pages/vinyls" element={<ProtectedRoute><VinylsPage /></ProtectedRoute>} />
+              <Route path="/pages/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/pages/users/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+              <Route path="/pages/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
             </Routes>
           </BrowserRouter>
         </MyProvider>

@@ -444,7 +444,7 @@ export const AdminPage = () => {
     const handleLogout = () => {
         localStorage.removeItem('player_volume')
         logout()
-        navigate('/login')
+        navigate('/pages/login')
     }
 
     return (
@@ -465,7 +465,7 @@ export const AdminPage = () => {
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
-                            onClick={() => navigate('/profile')}
+                            onClick={() => navigate('/pages/profile')}
                             style={{ background: 'none', border: '1px solid #333', borderRadius: '0.4rem', color: '#aaa', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', padding: '0.5rem 1rem' }}
                         >
                             Профиль

@@ -545,7 +545,7 @@ export const VinylPage = () => {
             <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
                 <PlayerTwo top />
                 <p style={{ color: '#555', fontSize: '0.875rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>нет пластинок</p>
-                <a href="/upload" style={{ color: '#FD5E5E', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>создать →</a>
+                <a href="/pages/upload/vinyl" style={{ color: '#FD5E5E', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>создать →</a>
             </div>
         )
     }

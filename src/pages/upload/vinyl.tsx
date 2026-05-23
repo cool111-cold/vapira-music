@@ -363,7 +363,7 @@ export const CreateVinylPage = () => {
                         {status === 'success' && (
                             <p style={{ color: '#5efd9a', fontSize: '0.78rem', marginBottom: '1rem' }}>
                                 пластинка создана —{' '}
-                                <a href="/vinyl" style={{ color: '#5efd9a' }}>открыть →</a>
+                                <a href="/pages/vinyl" style={{ color: '#5efd9a' }}>открыть →</a>
                             </p>
                         )}
 

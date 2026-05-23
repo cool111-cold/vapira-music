@@ -114,8 +114,8 @@ export const PlayerTwo = ({ top = false }: { top?: boolean }) => {
     const navButtons = (
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0, justifyContent: 'space-evenly'}}>
             <NavButton path="/">{NAV_ICONS.home}</NavButton>
-            <NavButton path="/vinyl">{NAV_ICONS.vinyl}</NavButton>
-            <NavButton path="/profile">{NAV_ICONS.profile}</NavButton>
+            <NavButton path="/pages/vinyl">{NAV_ICONS.vinyl}</NavButton>
+            <NavButton path="/pages/profile">{NAV_ICONS.profile}</NavButton>
         </div>
     );
 

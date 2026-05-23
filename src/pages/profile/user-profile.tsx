@@ -91,7 +91,7 @@ const UserSocialList = ({ token, endpoint, emptyText, showCount }: { token: stri
             {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
             {!loading && count === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>{emptyText}</p>}
             {users.map(u => (
-                <SocialUserRow key={String(u.id)} user={u} onClick={() => navigate(`/users/${u.id}`)} />
+                <SocialUserRow key={String(u.id)} user={u} onClick={() => navigate(`/pages/users/${u.id}`)} />
             ))}
         </>
     )
@@ -369,7 +369,7 @@ export const UserProfilePage = () => {
             {/* Favourite vinyl — bottom left */}
             {favVinyl && (
                 <div
-                    onClick={() => navigate(`/vinyl?vinylId=${favVinyl.id}`)}
+                    onClick={() => navigate(`/pages/vinyl?vinylId=${favVinyl.id}`)}
                     style={{
                     position: 'absolute', top: '55vh', left: '5vw',
                     display: 'flex', flexDirection: 'row', alignItems: 'center',

@@ -384,7 +384,7 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation()
-        navigator.clipboard.writeText(`${window.location.origin}/vinyl?vinylId=${localVinyl.id}`)
+        navigator.clipboard.writeText(`${window.location.origin}/pages/vinyl?vinylId=${localVinyl.id}`)
         setCopied(true)
         setMenuOpen(false)
         setTimeout(() => setCopied(false), 1500)
@@ -393,7 +393,7 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
     const handleGoToAuthor = (e: React.MouseEvent) => {
         e.stopPropagation()
         setMenuOpen(false)
-        navigate(`/users/${localVinyl.user_id}`)
+        navigate(`/pages/users/${localVinyl.user_id}`)
     }
 
     const handleReport = async (e: React.MouseEvent) => {
@@ -704,7 +704,7 @@ export const VinylsPage = () => {
                 {!loading && vinyls.length === 0 && (
                     <div>
                         <p style={{ color: '#555', fontSize: '0.875rem' }}>no vinyls yet</p>
-                        <a href="/upload" style={{ color: '#fff', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>create one →</a>
+                        <a href="/pages/upload/vinyl" style={{ color: '#fff', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', textDecoration: 'none' }}>create one →</a>
                     </div>
                 )}
                 {token && vinyls.map(v => (

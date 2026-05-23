@@ -17,10 +17,10 @@ const tabStyle = (isActive: boolean): React.CSSProperties => ({
 
 export const LibNav = () => (
     <nav style={{ display: 'flex', marginBottom: '2rem', borderBottom: '1px solid #2a2a2a' }}>
-        <NavLink to="/library" end style={({ isActive }) => tabStyle(isActive)}>All</NavLink>
-        <NavLink to="/tracks" style={({ isActive }) => tabStyle(isActive)}>Uploaded</NavLink>
-        <NavLink to="/saved" style={({ isActive }) => tabStyle(isActive)}>Saved</NavLink>
-        <NavLink to="/vinyls" style={({ isActive }) => tabStyle(isActive)}>Vinyls</NavLink>
-        <NavLink to="/search" style={({ isActive }) => tabStyle(isActive)}>Search</NavLink>
+        <NavLink to="/pages/library" end style={({ isActive }) => tabStyle(isActive)}>All</NavLink>
+        <NavLink to="/pages/tracks" style={({ isActive }) => tabStyle(isActive)}>Uploaded</NavLink>
+        <NavLink to="/pages/saved" style={({ isActive }) => tabStyle(isActive)}>Saved</NavLink>
+        <NavLink to="/pages/vinyls" style={({ isActive }) => tabStyle(isActive)}>Vinyls</NavLink>
+        <NavLink to="/pages/search" style={({ isActive }) => tabStyle(isActive)}>Search</NavLink>
     </nav>
 )

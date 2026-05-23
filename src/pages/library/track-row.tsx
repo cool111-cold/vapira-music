@@ -192,7 +192,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
 
     const handleGoToAuthor = () => {
         setMenuOpen(false)
-        if (localTrack.user_id) navigate(`/users/${localTrack.user_id}`)
+        if (localTrack.user_id) navigate(`/pages/users/${localTrack.user_id}`)
     }
 
     const handleReport = async () => {
