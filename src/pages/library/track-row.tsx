@@ -163,6 +163,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
     const [copied, setCopied] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
+    const [isMobile] = useState(() => window.innerWidth < 640)
 
     // console.log(track, '/./././')
 
@@ -389,10 +390,35 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                                 <ReportIcon />
                                 {reported ? 'Жалоба отправлена' : 'Пожаловаться'}
                             </button>
+                            {isMobile && onDelete && (
+                                <>
+                                    <button
+                                        onClick={() => { setMenuOpen(false); setEditOpen(true) }}
+                                        style={{ width: '100%', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#252525' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                    >
+                                        <PencilIcon />
+                                        Редактировать
+                                    </button>
+                                    <button
+                                        onClick={() => { setMenuOpen(false); handleDelete() }}
+                                        disabled={deleting}
+                                        style={{ width: '100%', background: 'none', border: 'none', color: '#f55', cursor: deleting ? 'default' : 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s', opacity: deleting ? 0.6 : 1 }}
+                                        onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = '#252525' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                        </svg>
+                                        {deleting ? 'Удаление...' : 'Удалить'}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
-                {onDelete && (
+                {onDelete && !isMobile && (
                     <>
                         <button
                             onClick={() => setEditOpen(true)}

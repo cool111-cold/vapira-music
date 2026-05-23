@@ -231,6 +231,13 @@ export const UserProfilePage = () => {
     const [subTab, setSubTab] = useState<SubTab>('uploaded')
     const [reporting, setReporting] = useState(false)
     const [reported, setReported] = useState(false)
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640)
+        window.addEventListener('resize', handler)
+        return () => window.removeEventListener('resize', handler)
+    }, [])
 
     useEffect(() => {
         if (!id || !token) return
@@ -324,11 +331,11 @@ export const UserProfilePage = () => {
     const avatarImage = profileUser.avatar_url || DEFAULT_AVATAR
 
     return (
-        <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#000', paddingBottom: '6rem' }}>
+        <div style={{ position: 'relative', width: '100%', minHeight: '100vh', backgroundColor: '#000', paddingBottom: '6rem', overflowX: 'hidden' }}>
             <PlayerTwo top />
 
             <div style={{ width: '100%', height: '75vh' }}>
-                <img src={bgImage} style={{ width: '100%', height: '75vh', objectFit: 'cover' }} />
+                <img src={bgImage} style={{ display: 'block', width: '100%', height: '75vh', objectFit: 'cover', objectPosition: 'top center' }} />
             </div>
 
             {/* Back button */}
@@ -348,11 +355,11 @@ export const UserProfilePage = () => {
             {/* Avatar */}
             <img
                 src={avatarImage}
-                style={{ width: 150, height: 150, objectFit: 'cover', position: 'absolute', top: '65vh', left: '45vw', borderRadius: 100, border: '5px solid #000' }}
+                style={{ width: 150, height: 150, objectFit: 'cover', position: 'absolute', top: 'calc(75vh - 75px)', left: '50%', transform: 'translateX(-50%)', borderRadius: 100, border: '5px solid #000' }}
             />
 
             {/* Name under avatar */}
-            <div style={{ position: 'absolute', top: 'calc(65vh + 162px)', left: '45vw', width: 150, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}>
+            <div style={{ position: 'absolute', top: 'calc(75vh + 87px)', left: '50%', transform: 'translateX(-50%)', width: 150, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}>
                 <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em' }}>
                     {profileUser.name ?? profileUser.email}
                 </span>
@@ -365,13 +372,19 @@ export const UserProfilePage = () => {
                     onClick={() => navigate(`/vinyl?vinylId=${favVinyl.id}`)}
                     style={{
                     position: 'absolute', top: '55vh', left: '5vw',
-                    display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12,
-                    backgroundColor: '#ffffff9e', borderRadius: 100, padding: 15, cursor: 'pointer',
+                    display: 'flex', flexDirection: 'row', alignItems: 'center',
+                    gap: isMobile ? 6 : 12,
+                    backgroundColor: '#ffffff9e', borderRadius: 100,
+                    padding: isMobile ? 8 : 15,
+                    cursor: 'pointer',
+                    maxWidth: isMobile ? '42vw' : 'none',
                 }}>
-                    <VinylRecord cover={favVinyl.cover ? `${BASE}${favVinyl.cover}` : undefined} />
+                    <div style={{ flexShrink: 0, transform: isMobile ? 'scale(0.7)' : 'none', transformOrigin: 'center' }}>
+                        <VinylRecord cover={favVinyl.cover ? `${BASE}${favVinyl.cover}` : undefined} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: '#000', fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.name}</div>
-                        <div style={{ color: '#333', fontSize: 11, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.artist}</div>
+                        <div style={{ color: '#000', fontSize: isMobile ? 10 : 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.name}</div>
+                        <div style={{ color: '#333', fontSize: isMobile ? 9 : 11, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.artist}</div>
                     </div>
                 </div>
             )}
@@ -382,6 +395,7 @@ export const UserProfilePage = () => {
                     style={{
                         position: 'absolute', top: '40vh', right: '8vw', transform: 'translateY(-50%)',
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10, cursor: 'pointer',
+                        maxWidth: isMobile ? '55vw' : 'none',
                     }}
                     onClick={() => loadAndPlayExternal({
                         id: String(favTrack.id),
@@ -391,11 +405,11 @@ export const UserProfilePage = () => {
                         cover: favTrack.avatar_url ?? undefined,
                     })}
                 >
-                    <span style={{ color: '#fff', fontSize: 20, alignSelf: 'flex-end' }}>Выбор пользователя</span>
+                    <span style={{ color: '#fff', fontSize: isMobile ? 12 : 20, alignSelf: 'flex-end' }}>Выбор пользователя</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div>
-                            <div style={{ color: '#fff', fontSize: 40, fontWeight: 900, marginBottom: 4, maxWidth: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favTrack.title}</div>
-                            <div style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>{favTrack.artist}</div>
+                            <div style={{ color: '#fff', fontSize: isMobile ? 20 : 40, fontWeight: 900, marginBottom: 4, maxWidth: isMobile ? '55vw' : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favTrack.title}</div>
+                            <div style={{ color: '#fff', fontSize: isMobile ? 13 : 20, fontWeight: 900 }}>{favTrack.artist}</div>
                         </div>
                     </div>
                     <div style={{
@@ -409,14 +423,22 @@ export const UserProfilePage = () => {
             )}
 
             {/* Friend action + tabs */}
-            <div style={{ width: '100%', margin: '0 auto', padding: '1.5rem 2rem 2rem' }}>
-                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mainTab ? '1.5rem' : 0 }}>
-                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+            <div style={{ marginTop: isMobile ? 120 : 0 }}>
+            <div style={{ width: '100%', margin: '0 auto', padding: isMobile ? '1rem' : '1.5rem 2rem 2rem' }}>
+                <div style={{
+                    width: '100%', display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    justifyContent: 'space-between',
+                    alignItems: isMobile ? 'flex-start' : 'center',
+                    gap: isMobile ? '0.75rem' : 0,
+                    marginBottom: mainTab ? '1.5rem' : 0,
+                }}>
+                    <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                         <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                         <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
                         <TabBtn active={mainTab === 'social'} onClick={() => handleMainTab('social')} label="Подписки" />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     {subscriptionLoaded && String(currentUser?.id) !== String(id) && (
                         <>
                             <div>
@@ -459,7 +481,6 @@ export const UserProfilePage = () => {
                                     padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1,
                                 }}
                             >
-                                {/* <ReportIcon /> */}
                                 {reported ? 'Жалоба отправлена' : 'Пожаловаться'}
                             </button>
                         </>
@@ -514,6 +535,7 @@ export const UserProfilePage = () => {
                         )}
                     </div>
                 )}
+            </div>
             </div>
         </div>
     )

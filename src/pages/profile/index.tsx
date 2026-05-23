@@ -20,10 +20,12 @@ interface SubscriptionUser {
 }
 
 const pageStyle: React.CSSProperties = {
+    position: 'relative',
     width: '100%',
     minHeight: '100vh',
     backgroundColor: '#000',
     paddingBottom: '6rem',
+    overflowX: 'hidden',
 }
 
 const VinylRecord = ({ cover, onClick }: { cover?: string; onClick?: () => void }) => (
@@ -754,6 +756,13 @@ export const ProfilePage = () => {
     const [favVinyl, setFavVinyl] = useState<VinylApi | null>(null)
     const [favTrackLoading, setFavTrackLoading] = useState(false)
     const [favVinylLoading, setFavVinylLoading] = useState(false)
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640)
+        window.addEventListener('resize', handler)
+        return () => window.removeEventListener('resize', handler)
+    }, [])
 
     useEffect(() => {
         if (!user?.favorite_track_id || !token) { setFavTrack(null); setFavTrackLoading(false); return }
@@ -808,14 +817,15 @@ export const ProfilePage = () => {
             {/* Avatar */}
             <img
                 src={avatarImage}
-                style={{width: 150, height: 150, objectFit: 'cover', position: 'absolute', top: '65vh', left: '45vw', borderRadius: 100, border: '5px solid #000'}}
+                style={{width: 150, height: 150, objectFit: 'cover', position: 'absolute', top: 'calc(75vh - 75px)', left: '50%', transform: 'translateX(-50%)', borderRadius: 100, border: '5px solid #000'}}
             />
 
             {/* Profile name under avatar */}
             <div style={{
                 position: 'absolute',
-                top: 'calc(65vh + 162px)',
-                left: '45vw',
+                top: 'calc(75vh + 87px)',
+                left: '50%',
+                transform: 'translateX(-50%)',
                 width: 150,
                 display: 'flex',
                 justifyContent: 'center',
@@ -839,16 +849,19 @@ export const ProfilePage = () => {
                     display: 'flex',
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 12,
+                    gap: isMobile ? 6 : 12,
                     backgroundColor: '#ffffff9e',
                     borderRadius: 100,
-                    padding: 15,
+                    padding: isMobile ? 8 : 15,
                     cursor: 'pointer',
+                    maxWidth: isMobile ? '42vw' : 'none',
                 }}>
-                    <VinylRecord cover={favVinyl.cover ? `${BASE}${favVinyl.cover}` : undefined} />
+                    <div style={{ flexShrink: 0, transform: isMobile ? 'scale(0.7)' : 'none', transformOrigin: 'center' }}>
+                        <VinylRecord cover={favVinyl.cover ? `${BASE}${favVinyl.cover}` : undefined} />
+                    </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ color: '#000', fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.name}</div>
-                        <div style={{ color: '#333', fontSize: 11, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.artist}</div>
+                        <div style={{ color: '#000', fontSize: isMobile ? 10 : 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.name}</div>
+                        <div style={{ color: '#333', fontSize: isMobile ? 9 : 11, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favVinyl.artist}</div>
                     </div>
                 </div>
             )}
@@ -866,6 +879,7 @@ export const ProfilePage = () => {
                         alignItems: 'flex-start',
                         gap: 10,
                         cursor: 'pointer',
+                        maxWidth: isMobile ? '55vw' : 'none',
                     }}
                     onClick={() => loadAndPlayExternal({
                         id: String(favTrack.id),
@@ -875,11 +889,11 @@ export const ProfilePage = () => {
                         cover: favTrack.avatar_url ?? undefined,
                     })}
                 >
-                    <span style={{ color: '#fff', fontSize: 20, alignSelf: 'flex-end' }}>Выбор пользователя</span>
+                    <span style={{ color: '#fff', fontSize: isMobile ? 12 : 20, alignSelf: 'flex-end' }}>Выбор пользователя</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div>
-                            <div style={{ color: '#fff', fontSize: 40, fontWeight: 900, marginBottom: 4, maxWidth: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favTrack.title}</div>
-                            <div style={{ color: '#fff', fontSize: 20, fontWeight: 900 }}>{favTrack.artist}</div>
+                            <div style={{ color: '#fff', fontSize: isMobile ? 20 : 40, fontWeight: 900, marginBottom: 4, maxWidth: isMobile ? '55vw' : 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{favTrack.title}</div>
+                            <div style={{ color: '#fff', fontSize: isMobile ? 13 : 20, fontWeight: 900 }}>{favTrack.artist}</div>
                         </div>
                     </div>
                     <div style={{
@@ -902,17 +916,24 @@ export const ProfilePage = () => {
             <div style={{width: '100%'}} />
 
             {/* Action section */}
-            <div>
-                <div style={{ width: '100%', margin: '0 auto', padding: '1.5rem 2rem 2rem'}}>
+            <div style={{ marginTop: isMobile ? 120 : 0 }}>
+                <div style={{ width: '100%', margin: '0 auto', padding: isMobile ? '1rem' : '1.5rem 2rem 2rem'}}>
 
                     {/* Main buttons */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mainTab ? '1.5rem' : 0}}>
-                        <div style={{ display: 'flex', gap: '0.6rem' }}>
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        justifyContent: 'space-between',
+                        alignItems: isMobile ? 'flex-start' : 'center',
+                        gap: isMobile ? '0.75rem' : 0,
+                        marginBottom: mainTab ? '1.5rem' : 0,
+                    }}>
+                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                             <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                             <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
                             <TabBtn active={mainTab === 'social'} onClick={() => handleMainTab('social')} label="Подписки" />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.6rem' }}>
+                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                             {user?.is_admin === 1 && (
                                 <ActionBtn label="Администратор" onClick={() => navigate('/admin')} />
                             )}
