@@ -431,6 +431,13 @@ export const AdminPage = () => {
     const { token, user, logout } = useAuth()
     const navigate = useNavigate()
     const [tab, setTab] = useState<AdminTab>('users')
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640)
+        window.addEventListener('resize', handler)
+        return () => window.removeEventListener('resize', handler)
+    }, [])
 
     if (!token || !user) return null
 
@@ -443,11 +450,18 @@ export const AdminPage = () => {
     return (
         <div style={{ width: '100%', minHeight: '100vh', backgroundColor: '#000', paddingBottom: '6rem' }}>
             <PlayerTwo top />
-            <div style={{ maxWidth: 700, margin: '0 auto', padding: '5rem 2rem 2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+            <div style={{ maxWidth: 700, margin: '0 auto', padding: isMobile ? '5rem 1rem 2rem' : '5rem 2rem 2rem' }}>
+                <div style={{
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: isMobile ? '0.75rem' : 0,
+                    marginBottom: '2rem',
+                }}>
                     <div>
                         <p style={{ fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#555', marginBottom: '0.4rem' }}>vapira</p>
-                        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>Администратор</h1>
+                        <h1 style={{ fontSize: isMobile ? '1.5rem' : '2rem', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>Администратор</h1>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
@@ -465,7 +479,7 @@ export const AdminPage = () => {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
                     <TabBtn active={tab === 'users'} onClick={() => setTab('users')} label="Пользователи" />
                     <TabBtn active={tab === 'tracks'} onClick={() => setTab('tracks')} label="Треки" />
                     <TabBtn active={tab === 'vinyls'} onClick={() => setTab('vinyls')} label="Пластинки" />

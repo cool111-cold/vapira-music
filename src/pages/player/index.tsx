@@ -38,6 +38,13 @@ export const PlayerScene = () => {
     const [tracks, setTracks] = useState<TrackItem[]>([]);
     const [loading, setLoading] = useState(false);
     const sharedTrackHandledRef = useRef(false);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
 
     const handleTrackClick = async (track: TrackItem) => {
         const audioIndex = audioTracks.findIndex(t => t.id === String(track.id));
@@ -101,11 +108,22 @@ export const PlayerScene = () => {
     }, [selectedVinylId, token]);
 
     return (
-        <div style={{ width: '100vw', height: '100vh', backgroundColor: vinyl?.second_color ?? '#222', display: 'flex' }}>
+        <div style={{
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: vinyl?.second_color ?? '#222',
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            overflow: 'hidden',
+        }}>
             <PlayerTwo top />
 
             {/* Canvas */}
-            <div style={{ flex: 1, height: '100%' }}>
+            <div style={{
+                flex: isMobile ? 'none' : 1,
+                width: isMobile ? '100%' : undefined,
+                height: isMobile ? '45vh' : '100%',
+            }}>
                 <Canvas
                     shadows
                     camera={{ zoom: 3, position: [0, 10, 0], up: [0, 0, -1], fov: 45 }}
@@ -144,18 +162,21 @@ export const PlayerScene = () => {
                 </Canvas>
             </div>
 
-            {/* Right panel */}
+            {/* Panel */}
             <div style={{
-                width: '28vw',
-                height: '100%',
+                width: isMobile ? '100%' : '28vw',
+                flex: isMobile ? 1 : undefined,
+                height: isMobile ? undefined : '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center',
+                justifyContent: selectedVinylId !== null ? 'flex-start' : 'center',
                 alignItems: selectedVinylId !== null ? 'flex-start' : 'center',
-                padding: '2rem',
-                paddingTop: '6rem',
+                padding: isMobile ? '1.25rem 1.25rem 5.5rem' : '2rem',
+                paddingTop: isMobile ? '1.25rem' : '6rem',
                 boxSizing: 'border-box',
-                borderLeft: '1px solid rgb(255, 255, 255)',
+                borderLeft: isMobile ? 'none' : '1px solid rgb(255, 255, 255)',
+                borderTop: isMobile ? '1px solid rgba(255,255,255,0.15)' : 'none',
+                overflowY: 'auto',
             }}>
                 {selectedVinylId === null ? (
                     <button
@@ -191,8 +212,8 @@ export const PlayerScene = () => {
                 ) : (
                     <>
                         {vinyl && (
-                            <div style={{ marginBottom: '1.5rem', width: '100%' }}>
-                                <p style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 700, textTransform: 'uppercase', margin: 0, lineHeight: 1.1 }}>
+                            <div style={{ marginBottom: '1.25rem', width: '100%' }}>
+                                <p style={{ color: '#fff', fontSize: isMobile ? '1.1rem' : '1.4rem', fontWeight: 700, textTransform: 'uppercase', margin: 0, lineHeight: 1.1 }}>
                                     {vinyl.name}
                                 </p>
                                 {vinyl.artist && (
@@ -203,7 +224,7 @@ export const PlayerScene = () => {
                             </div>
                         )}
 
-                        <div style={{ width: '100%', flex: 1, overflowY: 'auto', marginBottom: '1.5rem' }}>
+                        <div style={{ width: '100%', marginBottom: '1.5rem' }}>
                             {tracks.length === 0 ? (
                                 <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>нет треков</p>
                             ) : tracks.map(track => {
@@ -216,7 +237,7 @@ export const PlayerScene = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             padding: '0.7rem 0',
-                                            borderBottom: '1px solid rgb(255, 255, 255)',
+                                            borderBottom: '1px solid rgba(255,255,255,0.15)',
                                             cursor: 'pointer',
                                         }}
                                     >

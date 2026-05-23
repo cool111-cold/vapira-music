@@ -132,6 +132,13 @@ export const UploadTrackPage = () => {
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
     const [errorMsg, setErrorMsg] = useState('')
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640)
+        window.addEventListener('resize', handler)
+        return () => window.removeEventListener('resize', handler)
+    }, [])
 
     const trackReady = !!(title.trim() && artist.trim() && avatarUrl.trim() && file)
 
@@ -180,31 +187,32 @@ export const UploadTrackPage = () => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem',
+            justifyContent: isMobile ? 'flex-start' : 'center',
+            padding: isMobile ? '1rem' : '2rem',
+            paddingBottom: isMobile ? '6rem' : '2rem',
         }}>
             <PlayerTwo top />
-            <div style={{ width: '100%', maxWidth: '820px' }}>
+            <div style={{ width: '100%', maxWidth: '820px', marginTop: isMobile ? '1rem' : 0 }}>
 
                 {/* Progress bar */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '2.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: isMobile ? '1.75rem' : '2.75rem' }}>
                     {STEPS.map((label, i) => {
                         const done = completed[i]
                         return (
                             <React.Fragment key={i}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
                                     <div style={{
-                                        width: 26, height: 26,
+                                        width: isMobile ? 22 : 26, height: isMobile ? 22 : 26,
                                         borderRadius: '50%',
                                         backgroundColor: done ? '#fff' : '#111',
                                         border: `1px solid ${done ? '#fff' : '#2a2a2a'}`,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '0.7rem', fontWeight: 700,
+                                        fontSize: isMobile ? '0.6rem' : '0.7rem', fontWeight: 700,
                                         color: done ? '#000' : '#444',
                                         transition: 'all 0.25s',
                                     }}>{i + 1}</div>
                                     <span style={{
-                                        fontSize: '0.58rem',
+                                        fontSize: isMobile ? '0.5rem' : '0.58rem',
                                         color: done ? '#fff' : '#444',
                                         letterSpacing: '0.08em',
                                         textTransform: 'uppercase',
@@ -216,7 +224,7 @@ export const UploadTrackPage = () => {
                                         flex: 1,
                                         height: 1,
                                         backgroundColor: done ? '#fff' : '#1e1e1e',
-                                        margin: '0.75rem 0.6rem 0',
+                                        margin: isMobile ? '0.55rem 0.4rem 0' : '0.75rem 0.6rem 0',
                                         transition: 'background-color 0.25s',
                                     }} />
                                 )}
@@ -225,38 +233,48 @@ export const UploadTrackPage = () => {
                     })}
                 </div>
 
-                {/* Horizontal layout */}
-                <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'flex-start' }}>
+                {/* Layout: row on desktop, column on mobile */}
+                <div style={{
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? '1.5rem' : '2.5rem',
+                    alignItems: 'flex-start',
+                }}>
 
-                    {/* Left — file drop */}
+                    {/* File drop */}
                     <div
                         style={{
-                            flex: '0 0 220px',
+                            flex: isMobile ? 'none' : '0 0 220px',
+                            width: isMobile ? '100%' : undefined,
                             border: '1px dashed',
                             borderColor: file ? '#fff' : '#252525',
                             borderRadius: '1rem',
-                            padding: '2rem 1.25rem',
+                            padding: isMobile ? '1.25rem 1rem' : '2rem 1.25rem',
                             display: 'flex',
-                            flexDirection: 'column',
+                            flexDirection: isMobile ? 'row' : 'column',
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: '0.75rem',
                             cursor: 'pointer',
-                            minHeight: '200px',
-                            textAlign: 'center',
+                            minHeight: isMobile ? 'auto' : '200px',
                             transition: 'border-color 0.2s',
                         }}
                         onClick={() => fileInputRef.current?.click()}
                     >
                         {file ? (
                             <>
-                                <span style={{ fontSize: '2rem' }}>♪</span>
-                                <span style={{ color: '#ccc', fontSize: '0.75rem', wordBreak: 'break-all', lineHeight: 1.4 }}>{file.name}</span>
-                                <span style={{ color: '#fff', fontSize: '0.6rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>заменить</span>
+                                <span style={{ fontSize: isMobile ? '1.5rem' : '2rem', flexShrink: 0 }}>♪</span>
+                                <span style={{
+                                    color: '#ccc', fontSize: '0.75rem', lineHeight: 1.4,
+                                    flex: isMobile ? 1 : undefined,
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                    textAlign: isMobile ? 'left' : 'center',
+                                }}>{file.name}</span>
+                                <span style={{ color: '#fff', fontSize: '0.6rem', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>заменить</span>
                             </>
                         ) : (
                             <>
-                                <span style={{ fontSize: '2.5rem', color: '#252525', lineHeight: 1 }}>+</span>
+                                <span style={{ fontSize: isMobile ? '2rem' : '2.5rem', color: '#252525', lineHeight: 1 }}>+</span>
                                 <span style={{ color: '#3a3a3a', fontSize: '0.78rem', letterSpacing: '0.04em' }}>добавить аудио</span>
                             </>
                         )}
@@ -269,8 +287,8 @@ export const UploadTrackPage = () => {
                         />
                     </div>
 
-                    {/* Right — fields */}
-                    <div style={{ flex: 1 }}>
+                    {/* Fields */}
+                    <div style={{ flex: 1, width: isMobile ? '100%' : undefined }}>
                         <Field label="Название">
                             <input
                                 style={inputStyle}

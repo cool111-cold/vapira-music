@@ -1,7 +1,7 @@
 import React from 'react';
 import { Environment } from '@react-three/drei';
 import Record from '../../Record';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import RightArrowIcon from '../../media/icons/right-arrow.svg';
 import LeftArrowIcon from '../../media/icons/left-arrow.svg';
@@ -80,9 +80,10 @@ const scaleForDist = (absDist: number) => {
     return 0.005 / 0.022;
 };
 
-const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: number; counter: number; item: VinylDisplay; click: () => void; openFull: boolean }) => {
+const AnimatedRecord = ({ index, counter, item, click, openFull, isMobile }: { index: number; counter: number; item: VinylDisplay; click: () => void; openFull: boolean; isMobile: boolean }) => {
     const groupRef = useRef<THREE.Group>(null);
     const animX = useRef<number | null>(null);
+    const animY = useRef<number | null>(null);
     const animScale = useRef<number | null>(null);
     const animRotY = useRef(0);
     const targetRotY = useRef(0);
@@ -99,6 +100,7 @@ const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: numb
         if (!groupRef.current) return;
 
         const vw = state.viewport.width;
+        const vh = state.viewport.height;
 
         if (prevCounter.current !== counter) {
             const dir = counter > prevCounter.current ? 1 : -1;
@@ -107,19 +109,23 @@ const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: numb
         }
 
         let targetX: number;
+        let targetY: number;
         let targetScale: number;
 
         if (openFull) {
             if (index === counter - 1) {
-                targetX = -vw * 0.035;
+                targetX = isMobile ? 0 : -vw * 0.035;
+                targetY = isMobile ? -vh * 0.035 : 0;
                 targetScale = 0.9;
             } else {
                 const dir = index < counter - 1 ? -1 : 1;
                 targetX = dir * vw * 2;
+                targetY = 0;
                 targetScale = 0;
             }
         } else {
             targetX = (index - (counter - 1)) * SPACING * vw;
+            targetY = 0;
             const absDist = Math.abs(targetX) / (SPACING * vw);
             targetScale = scaleForDist(absDist);
         }
@@ -127,15 +133,18 @@ const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: numb
         // Snap on first frame or viewport resize to avoid jump
         if (animX.current === null || prevVW.current !== vw) {
             animX.current = targetX;
+            animY.current = targetY;
             animScale.current = targetScale;
             prevVW.current = vw;
         }
 
         animX.current = THREE.MathUtils.lerp(animX.current, targetX, 0.1);
+        animY.current = THREE.MathUtils.lerp(animY.current!, targetY, 0.1);
         animScale.current = THREE.MathUtils.lerp(animScale.current!, targetScale, 0.1);
         animRotY.current = THREE.MathUtils.lerp(animRotY.current, targetRotY.current, 0.07);
 
         groupRef.current.position.x = animX.current;
+        groupRef.current.position.y = animY.current!;
         groupRef.current.scale.setScalar(Math.max(0, animScale.current!));
         groupRef.current.rotation.y = animRotY.current;
     });
@@ -147,11 +156,20 @@ const AnimatedRecord = ({ index, counter, item, click, openFull }: { index: numb
     );
 };
 
-const RecordsGroup = ({ counter, click, openFull, vinyls }: { counter: number; click: () => void; openFull: boolean; vinyls: VinylDisplay[] }) => {
+const CameraZoom = ({ zoom }: { zoom: number }) => {
+    const { camera } = useThree()
+    useEffect(() => {
+        (camera as THREE.PerspectiveCamera).zoom = zoom;
+        camera.updateProjectionMatrix();
+    }, [zoom, camera]);
+    return null;
+};
+
+const RecordsGroup = ({ counter, click, openFull, vinyls, isMobile }: { counter: number; click: () => void; openFull: boolean; vinyls: VinylDisplay[]; isMobile: boolean }) => {
     return (
         <>
             {vinyls.map((item, i) => (
-                <AnimatedRecord key={item.id} index={i} counter={counter} item={item} click={click} openFull={openFull} />
+                <AnimatedRecord key={item.id} index={i} counter={counter} item={item} click={click} openFull={openFull} isMobile={isMobile} />
             ))}
         </>
     );
@@ -370,7 +388,14 @@ export const VinylPage = () => {
     const [sharedVinylId, setSharedVinylId] = useState<number | null>(null);
     const [savingVinyl, setSavingVinyl] = useState(false);
     const [vinylSaved, setVinylSaved] = useState(false);
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const handler = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handler);
+        return () => window.removeEventListener('resize', handler);
+    }, []);
 
     useEffect(() => {
         if (!token) return
@@ -537,10 +562,11 @@ export const VinylPage = () => {
                         outputColorSpace: THREE.SRGBColorSpace,
                     }}
                 >
+                    <CameraZoom zoom={isMobile ? 1.8 : 3} />
                     <Environment preset='park' />
                     <ambientLight intensity={0.5} />
                     <directionalLight position={[5, 10, 5]} intensity={2} />
-                    <RecordsGroup counter={counter} click={() => setOpenCover(e => !e)} openFull={delayedOpen} vinyls={vinyls} />
+                    <RecordsGroup counter={counter} click={() => setOpenCover(e => !e)} openFull={delayedOpen} vinyls={vinyls} isMobile={isMobile} />
                 </Canvas>
             </div>
             <SlideBackground counter={counter} vinyls={vinyls} />
@@ -557,7 +583,10 @@ export const VinylPage = () => {
 
             {/* Detail overlay content */}
             <div style={{
-                display: 'flex', alignItems: 'center', flexDirection: 'column', justifyContent: 'center',
+                display: 'flex',
+                alignItems: isMobile ? 'center' : 'center',
+                flexDirection: 'column',
+                justifyContent: isMobile ? 'flex-end' : 'center',
                 width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: 10,
                 pointerEvents: 'none',
                 '--circle-radius': openCover ? '0%' : '150%',
@@ -565,25 +594,34 @@ export const VinylPage = () => {
                 maskImage: 'radial-gradient(circle at 50% 50%, transparent var(--circle-radius), black var(--circle-radius))',
                 transition: '--circle-radius 0.7s ease',
             } as React.CSSProperties}>
-                <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '45vw', width: '40vw', pointerEvents: openCover ? 'auto' : 'none' }}>
+                <div style={{
+                    display: 'flex', flexDirection: 'column',
+                    marginLeft: isMobile ? 0 : '45vw',
+                    width: isMobile ? '100%' : '40vw',
+                    padding: isMobile ? '1.25rem 1.25rem 6rem' : 0,
+                    background: isMobile ? `${currentVinyl?.secondColor ?? '#000'}cc` : 'transparent',
+                    backdropFilter: isMobile ? 'blur(20px)' : 'none',
+                    WebkitBackdropFilter: isMobile ? 'blur(20px)' : 'none',
+                    pointerEvents: openCover ? 'auto' : 'none',
+                }}>
                     {!showTracks ? (
                         <>
-                            <p style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '2.5rem', color: '#fff', margin: 0, lineHeight: 1.1 }}>
+                            <p style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: isMobile ? '1.5rem' : '2.5rem', color: '#fff', margin: 0, lineHeight: 1.1 }}>
                                 {currentVinyl?.name}
                             </p>
                             {currentVinyl?.artist && (
-                                <p style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '2.5rem', color: '#fff', margin: 0, lineHeight: 1.1 }}>
+                                <p style={{ fontWeight: 700, textTransform: 'uppercase', fontSize: isMobile ? '1.5rem' : '2.5rem', color: '#fff', margin: 0, lineHeight: 1.1 }}>
                                     {currentVinyl.artist}
                                 </p>
                             )}
                             {currentVinyl?.description && (
-                                <p style={{ fontWeight: 500, fontSize: '1rem', color: currentVinyl.bgColor, marginTop: '1rem', lineHeight: 1.5, pointerEvents: 'none' }}>
+                                <p style={{ fontWeight: 500, fontSize: isMobile ? '0.85rem' : '1rem', color: currentVinyl.bgColor, marginTop: '0.75rem', lineHeight: 1.5, pointerEvents: 'none' }}>
                                     {currentVinyl.description}
                                 </p>
                             )}
                         </>
                     ) : (
-                        <div style={{ maxHeight: '35vh', overflowY: 'auto' }}>
+                        <div style={{ maxHeight: isMobile ? '25vh' : '35vh', overflowY: 'auto' }}>
                             {tracksLoading ? (
                                 <p style={{ color: '#fff', fontSize: '0.875rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>loading tracks...</p>
                             ) : tracks.length === 0 ? (
@@ -614,7 +652,7 @@ export const VinylPage = () => {
                             })}
                         </div>
                     )}
-                    <div style={{display: 'flex', flexDirection: 'row', width: 'auto', gap: 12}}>
+                    <div style={{display: 'flex', flexDirection: 'row', width: 'auto', gap: 12, marginTop: '1rem', flexWrap: 'wrap'}}>
                         {sharedVinylId === currentVinyl?.id && !vinylSaved && (
                             <button
                                 className="purchase-btn"
@@ -634,9 +672,15 @@ export const VinylPage = () => {
             {/* Cover image with glitch swap to video_cover */}
             {currentVinyl?.cover && (
                 <div style={{
-                    width: '25vw', height: '25vw', position: 'absolute', zIndex: showCover ? 3 : 2,
-                    left: delayedOpen ? '15vw' : '-25vw', top: '50%', transform: 'translateY(-50%)',
-                    transition: 'left ease 0.7s', borderRadius: '.3rem', overflow: 'hidden',
+                    width: isMobile ? 'min(60vw, 38vh)' : '50vh',
+                    height: isMobile ? 'min(60vw, 38vh)' : '50vh',
+                    position: 'absolute',
+                    zIndex: showCover ? 3 : 2,
+                    left: isMobile ? '50%' : (delayedOpen ? '15vw' : 'calc(-50vh)'),
+                    top: isMobile ? (delayedOpen ? '14vh' : '-70vw') : '50%',
+                    transform: isMobile ? 'translateX(-50%)' : 'translateY(-50%)',
+                    transition: isMobile ? 'top ease 0.7s' : 'left ease 0.7s',
+                    borderRadius: '.3rem', overflow: 'hidden',
                 }}>
                     <img
                         src={currentVinyl.cover}
@@ -646,9 +690,15 @@ export const VinylPage = () => {
             )}
             {openCover && currentVinyl?.videoCover && (
                 <div style={{
-                    width: '25vw', height: '25vw', position: 'absolute', zIndex: showCover ? 2 : 3,
-                    left: delayedOpen ? '15vw' : '-25vw', top: '50%', transform: 'translateY(-50%)',
-                    transition: 'left ease 0.7s', borderRadius: '.3rem', overflow: 'hidden',
+                    width: isMobile ? 'min(60vw, 38vh)' : '50vh',
+                    height: isMobile ? 'min(60vw, 38vh)' : '50vh',
+                    position: 'absolute',
+                    zIndex: showCover ? 2 : 3,
+                    left: isMobile ? '50%' : (delayedOpen ? '15vw' : 'calc(-50vh)'),
+                    top: isMobile ? (delayedOpen ? '14vh' : '-70vw') : '50%',
+                    transform: isMobile ? 'translateX(-50%)' : 'translateY(-50%)',
+                    transition: isMobile ? 'top ease 0.7s' : 'left ease 0.7s',
+                    borderRadius: '.3rem', overflow: 'hidden',
                 }}>
                     <img
                         src={currentVinyl.videoCover}
@@ -657,8 +707,36 @@ export const VinylPage = () => {
                 </div>
             )}
 
+            {/* Mobile back button */}
+            {isMobile && openCover && (
+                <button
+                    onClick={() => setOpenCover(false)}
+                    style={{
+                        position: 'absolute',
+                        top: '4.5rem',
+                        left: '1rem',
+                        zIndex: 20,
+                        background: 'rgba(0,0,0,0.5)',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: 40,
+                        height: 40,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: '#fff',
+                        fontSize: '1.1rem',
+                    }}
+                >
+                    ←
+                </button>
+            )}
+
             {/* Navigation */}
-            <div style={{ width: '100%', height: '10%', position: 'absolute', bottom: 0, padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: openCover ? 0 : 10 }}>
+            <div style={{ width: '100%', height: '10%', position: 'absolute', bottom: isMobile ? '6rem' : 0, padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: openCover ? 0 : 10 }}>
                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', overflow: 'hidden' }}>
                     <AnimatedCounter value={counter} />
                     <p style={{ fontSize: '1rem', fontWeight: 500 }}>{`/${vinyls.length < 10 ? '0' : ''}${vinyls.length}`}</p>
