@@ -136,6 +136,12 @@ const PencilIcon = () => (
     </svg>
 )
 
+const ReportIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 12.9V8.41447M12 16.2248V16.2642M17.6699 20H6.33007C4.7811 20 3.47392 18.9763 3.06265 17.5757C2.88709 16.9778 3.10281 16.3551 3.43276 15.8249L9.10269 5.60102C10.4311 3.46632 13.5689 3.46633 14.8973 5.60103L20.5672 15.8249C20.8972 16.3551 21.1129 16.9778 20.9373 17.5757C20.5261 18.9763 19.2189 20 17.6699 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+)
+
 export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, onEdited }) => {
     const { token } = useAuth()
     const navigate = useNavigate()
@@ -143,6 +149,8 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
     const { savedIds, toggleSaved } = useSaved()
     const [toggling, setToggling] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [reporting, setReporting] = useState(false)
+    const [reported, setReported] = useState(false)
     const [editOpen, setEditOpen] = useState(false)
     const [localTrack, setLocalTrack] = useState(track)
     const [copied, setCopied] = useState(false)
@@ -177,6 +185,21 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
     const handleGoToAuthor = () => {
         setMenuOpen(false)
         if (localTrack.user_id) navigate(`/users/${localTrack.user_id}`)
+    }
+
+    const handleReport = async () => {
+        if (!token || reporting || reported) return
+        setReporting(true)
+        setMenuOpen(false)
+        try {
+            await fetch(`${BASE}/reports/tracks/${localTrack.id}`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            setReported(true)
+        } finally {
+            setReporting(false)
+        }
     }
 
     const isCurrentTrack = currentTrack?.id === localTrack.id
@@ -314,6 +337,16 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                                     Страница автора
                                 </button>
                             )}
+                            <button
+                                onClick={handleReport}
+                                disabled={reporting || reported}
+                                style={{ width: '100%', background: 'none', border: 'none', color: reported ? '#4ade80' : '#ccc', cursor: reporting || reported ? 'default' : 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s', opacity: reporting ? 0.6 : 1 }}
+                                onMouseEnter={e => { if (!reporting && !reported) e.currentTarget.style.background = '#252525' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                            >
+                                <ReportIcon />
+                                {reported ? 'Жалоба отправлена' : 'Пожаловаться'}
+                            </button>
                         </div>
                     )}
                 </div>

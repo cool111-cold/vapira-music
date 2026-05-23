@@ -719,6 +719,13 @@ interface FavTrack {
 const DEFAULT_BG = '/images/back.jpg'
 const DEFAULT_AVATAR = '/images/ava.jpg'
 
+const AdminCheckIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#fff', flexShrink: 0 }}>
+        <title>Админ</title>
+        <path d="M15.142 9.98299L10.875 14.25L9.42049 12.7955M12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+)
+
 const PageLoader = () => (
     <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
@@ -810,11 +817,15 @@ export const ProfilePage = () => {
                 top: 'calc(65vh + 162px)',
                 left: '45vw',
                 width: 150,
-                textAlign: 'center',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 4,
             }}>
                 <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em' }}>
                     {user?.name ?? user?.email ?? 'vapira'}
                 </span>
+                {user?.is_admin === 1 && <AdminCheckIcon />}
             </div>
 
             {/* Favourite vinyl — bottom left */}
@@ -895,7 +906,7 @@ export const ProfilePage = () => {
                 <div style={{ width: '100%', margin: '0 auto', padding: '1.5rem 2rem 2rem'}}>
 
                     {/* Main buttons */}
-                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: mainTab ? '1.5rem' : 0}}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mainTab ? '1.5rem' : 0}}>
                         <div style={{ display: 'flex', gap: '0.6rem' }}>
                             <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                             <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />

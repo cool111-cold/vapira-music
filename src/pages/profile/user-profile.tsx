@@ -19,7 +19,15 @@ interface PublicUser {
     bg_image_url?: string
     favorite_track_id?: number | null
     favorite_vinyl_id?: number | null
+    is_admin?: number
 }
+
+const AdminCheckIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: '#fff', flexShrink: 0 }}>
+        <title>Админ</title>
+        <path d="M15.142 9.98299L10.875 14.25L9.42049 12.7955M12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+)
 
 interface FavTrack {
     id: number
@@ -186,6 +194,12 @@ const VinylRecord = ({ cover }: { cover?: string }) => (
     </div>
 )
 
+const ReportIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 12.9V8.41447M12 16.2248V16.2642M17.6699 20H6.33007C4.7811 20 3.47392 18.9763 3.06265 17.5757C2.88709 16.9778 3.10281 16.3551 3.43276 15.8249L9.10269 5.60102C10.4311 3.46632 13.5689 3.46633 14.8973 5.60103L20.5672 15.8249C20.8972 16.3551 21.1129 16.9778 20.9373 17.5757C20.5261 18.9763 19.2189 20 17.6699 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+)
+
 const PageLoader = () => (
     <div style={{
         position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: '#000',
@@ -215,6 +229,8 @@ export const UserProfilePage = () => {
     const [actionPending, setActionPending] = useState(false)
     const [mainTab, setMainTab] = useState<MainTab>(null)
     const [subTab, setSubTab] = useState<SubTab>('uploaded')
+    const [reporting, setReporting] = useState(false)
+    const [reported, setReported] = useState(false)
 
     useEffect(() => {
         if (!id || !token) return
@@ -284,6 +300,17 @@ export const UserProfilePage = () => {
         }
     }
 
+    const handleReportUser = async () => {
+        if (!id || !token || reporting || reported) return
+        setReporting(true)
+        try {
+            await fetch(`${BASE}/reports/users/${id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+            setReported(true)
+        } finally {
+            setReporting(false)
+        }
+    }
+
     if (loading) return <PageLoader />
 
     if (!profileUser) return (
@@ -325,10 +352,11 @@ export const UserProfilePage = () => {
             />
 
             {/* Name under avatar */}
-            <div style={{ position: 'absolute', top: 'calc(65vh + 162px)', left: '45vw', width: 150, textAlign: 'center' }}>
+            <div style={{ position: 'absolute', top: 'calc(65vh + 162px)', left: '45vw', width: 150, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4 }}>
                 <span style={{ color: '#fff', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em' }}>
                     {profileUser.name ?? profileUser.email}
                 </span>
+                {profileUser.is_admin === 1 && <AdminCheckIcon />}
             </div>
 
             {/* Favourite vinyl — bottom left */}
@@ -382,43 +410,59 @@ export const UserProfilePage = () => {
 
             {/* Friend action + tabs */}
             <div style={{ width: '100%', margin: '0 auto', padding: '1.5rem 2rem 2rem' }}>
-                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-around', alignItems: 'center', marginBottom: mainTab ? '1.5rem' : 0 }}>
+                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mainTab ? '1.5rem' : 0 }}>
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
                         <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                         <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
                         <TabBtn active={mainTab === 'social'} onClick={() => handleMainTab('social')} label="Подписки" />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
                     {subscriptionLoaded && String(currentUser?.id) !== String(id) && (
-                        <div>
-                            {isSubscribed ? (
-                                <button
-                                    onClick={unsubscribe}
-                                    disabled={actionPending}
-                                    style={{
-                                        background: 'none', border: '1px solid #333', borderRadius: '0.4rem',
-                                        color: '#555', fontSize: '0.75rem', letterSpacing: '0.08em',
-                                        textTransform: 'uppercase', cursor: actionPending ? 'not-allowed' : 'pointer',
-                                        padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1,
-                                    }}
-                                >
-                                    {actionPending ? '...' : 'отписаться'}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={subscribe}
-                                    disabled={actionPending}
-                                    style={{
-                                        background: '#fff', border: 'none', borderRadius: '0.4rem',
-                                        color: '#000', fontSize: '0.75rem', letterSpacing: '0.08em',
-                                        textTransform: 'uppercase', cursor: actionPending ? 'not-allowed' : 'pointer',
-                                        padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1, fontWeight: 600,
-                                    }}
-                                >
-                                    {actionPending ? '...' : '+ подписаться'}
-                                </button>
-                            )}
-                        </div>
+                        <>
+                            <div>
+                                {isSubscribed ? (
+                                    <button
+                                        onClick={unsubscribe}
+                                        disabled={actionPending}
+                                        style={{
+                                            background: 'none', border: '1px solid #333', borderRadius: '0.4rem',
+                                            color: '#555', fontSize: '0.75rem', letterSpacing: '0.08em',
+                                            textTransform: 'uppercase', cursor: actionPending ? 'not-allowed' : 'pointer',
+                                            padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1,
+                                        }}
+                                    >
+                                        {actionPending ? '...' : 'отписаться'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={subscribe}
+                                        disabled={actionPending}
+                                        style={{
+                                            background: '#fff', border: 'none', borderRadius: '0.4rem',
+                                            color: '#000', fontSize: '0.75rem', letterSpacing: '0.08em',
+                                            textTransform: 'uppercase', cursor: actionPending ? 'not-allowed' : 'pointer',
+                                            padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1, fontWeight: 600,
+                                        }}
+                                    >
+                                        {actionPending ? '...' : '+ подписаться'}
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                onClick={handleReportUser}
+                                disabled={reporting || reported}
+                                title={reported ? 'Жалоба отправлена' : 'Пожаловаться'}
+                                style={{
+                                    background: 'none', border: '1px solid #333', borderRadius: '0.4rem',
+                                    color: '#555', fontSize: '0.75rem', letterSpacing: '0.08em',
+                                    textTransform: 'uppercase', cursor: actionPending ? 'not-allowed' : 'pointer',
+                                    padding: '0.5rem 1rem', opacity: actionPending ? 0.5 : 1,
+                                }}
+                            >
+                                {/* <ReportIcon /> */}
+                                {reported ? 'Жалоба отправлена' : 'Пожаловаться'}
+                            </button>
+                        </>
                     )}
                     </div>
                 </div>

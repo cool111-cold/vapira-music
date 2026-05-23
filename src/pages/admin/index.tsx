@@ -38,6 +38,77 @@ const TrashIcon = () => (
     </svg>
 )
 
+type ReportType = 'tracks' | 'vinyl' | 'users'
+
+const ReportsBadge = ({ token, type, id }: { token: string; type: ReportType; id: number | string }) => {
+    const [count, setCount] = useState<number | null>(null)
+    const [clearing, setClearing] = useState(false)
+    const [confirm, setConfirm] = useState(false)
+
+    useEffect(() => {
+        fetch(`${BASE}/reports/${type}/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (data === null) { setCount(0); return }
+                setCount(Array.isArray(data) ? data.length : (data?.count ?? data?.total ?? 0))
+            })
+            .catch(() => setCount(0))
+    }, [token, type, id])
+
+    const handleClear = async () => {
+        if (clearing) return
+        setClearing(true)
+        setConfirm(false)
+        try {
+            await fetch(`${BASE}/reports/${type}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+            setCount(0)
+        } finally {
+            setClearing(false)
+        }
+    }
+
+    if (count === null || count === 0) return null
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+            <span style={{
+                background: '#3a1a1a', color: '#ff6b6b', fontSize: '0.65rem',
+                fontWeight: 700, letterSpacing: '0.04em', borderRadius: '0.3rem',
+                padding: '0.15rem 0.45rem', whiteSpace: 'nowrap',
+            }}>
+                {/* {count} жал. */}
+                {count}
+            </span>
+            {confirm ? (
+                <>
+                    <button
+                        onClick={handleClear}
+                        disabled={clearing}
+                        style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.15rem 0.3rem' }}
+                    >
+                        {clearing ? '...' : 'снять'}
+                    </button>
+                    <button
+                        onClick={() => setConfirm(false)}
+                        style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.15rem 0.3rem' }}
+                    >
+                        нет
+                    </button>
+                </>
+            ) : (
+                <button
+                    onClick={() => setConfirm(true)}
+                    style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0.15rem 0.3rem', transition: 'color 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#ff6b6b' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#444' }}
+                >
+                    ×
+                </button>
+            )}
+        </div>
+    )
+}
+
 const TabBtn = ({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) => (
     <button
         onClick={onClick}
@@ -181,6 +252,7 @@ const UsersTab = ({ token, currentUserId }: { token: string; currentUserId: stri
                             </div>
                             {u.name && <div style={{ color: '#555', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>}
                         </div>
+                        <ReportsBadge token={token} type="users" id={u.id} />
                         {!isSelf && (
                             <>
                                 <button
@@ -280,6 +352,7 @@ const TracksTab = ({ token }: { token: string }) => {
                         <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
                         <div style={{ color: '#555', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.artist}</div>
                     </div>
+                    <ReportsBadge token={token} type="tracks" id={t.id} />
                     <DeleteBtn onConfirm={() => handleDelete(t.id)} disabled={deletingId === t.id} />
                 </div>
             ))}
@@ -346,6 +419,7 @@ const VinylsTab = ({ token }: { token: string }) => {
                         <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</div>
                         {v.artist && <div style={{ color: '#555', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.artist}</div>}
                     </div>
+                    <ReportsBadge token={token} type="vinyl" id={v.id} />
                     <DeleteBtn onConfirm={() => handleDelete(v.id)} disabled={deletingId === v.id} />
                 </div>
             ))}
