@@ -136,6 +136,12 @@ const PencilIcon = () => (
     </svg>
 )
 
+const DownloadIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 20.3827C4.40471 20.778 4.95361 21 5.52595 21H18.4741C19.0464 21 19.5953 20.778 20 20.3827M12.0012 3V14.9425M7.06859 10.3793L12.0012 14.9425L16.9338 10.3793" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+)
+
 const ReportIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M12 12.9V8.41447M12 16.2248V16.2642M17.6699 20H6.33007C4.7811 20 3.47392 18.9763 3.06265 17.5757C2.88709 16.9778 3.10281 16.3551 3.43276 15.8249L9.10269 5.60102C10.4311 3.46632 13.5689 3.46633 14.8973 5.60103L20.5672 15.8249C20.8972 16.3551 21.1129 16.9778 20.9373 17.5757C20.5261 18.9763 19.2189 20 17.6699 20Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -150,6 +156,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
     const [toggling, setToggling] = useState(false)
     const [deleting, setDeleting] = useState(false)
     const [reporting, setReporting] = useState(false)
+    const [downloading, setDownloading] = useState(false)
     const [reported, setReported] = useState(false)
     const [editOpen, setEditOpen] = useState(false)
     const [localTrack, setLocalTrack] = useState(track)
@@ -199,6 +206,28 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
             setReported(true)
         } finally {
             setReporting(false)
+        }
+    }
+
+    const handleDownload = async () => {
+        if (downloading) return
+        setDownloading(true)
+        try {
+            const headers: Record<string, string> = {}
+            if (token) headers['Authorization'] = `Bearer ${token}`
+            const res = await fetch(`${BASE}/tracks/${localTrack.id}/download`, { headers })
+            if (!res.ok) return
+            const blob = await res.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            const disposition = res.headers.get('Content-Disposition')
+            const match = disposition?.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)/)
+            a.download = match?.[1] ?? `${localTrack.title}.mp3`
+            a.click()
+            URL.revokeObjectURL(url)
+        } finally {
+            setDownloading(false)
         }
     }
 
@@ -325,6 +354,19 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                                     : <ShareIcon />
                                 }
                                 {copied ? 'Скопировано' : 'Поделиться'}
+                            </button>
+                            <button
+                                onClick={handleDownload}
+                                disabled={downloading}
+                                style={{ width: '100%', background: 'none', border: 'none', color: '#ccc', cursor: downloading ? 'default' : 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s', opacity: downloading ? 0.6 : 1 }}
+                                onMouseEnter={e => { if (!downloading) e.currentTarget.style.background = '#252525' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                            >
+                                {downloading
+                                    ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ animation: 'spin 0.8s linear infinite' }}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" strokeDasharray="28 56" strokeLinecap="round"/></svg>
+                                    : <DownloadIcon />
+                                }
+                                {downloading ? 'Скачивание...' : 'Скачать'}
                             </button>
                             {localTrack.user_id && (
                                 <button
