@@ -7,6 +7,7 @@ import VinylTransport from '../../VinylTransport';
 import { PlayerTwo } from '../../components/player/player-two';
 import { useAuth } from '../../context/auth-context';
 import { useAudioPlayer } from '../../context/audio-context';
+import { TrackRow, LibTrack } from '../library/track-row';
 
 const BASE_URL = 'https://vapira.ru';
 const toUrl = (path: string | null) => (path ? `${BASE_URL}${path}` : '');
@@ -24,9 +25,6 @@ interface TrackItem {
     id: number;
     title: string;
     artist: string;
-    avatar_url: string | null;
-    stream_url: string;
-    position?: number;
 }
 
 const FEED_LIMIT = 10;
@@ -40,6 +38,57 @@ const FEED_LABELS: Record<FeedMode, string> = {
     uploaded: 'Загруженные',
     saved: 'Сохранённые',
 }
+
+const FEED_BACKGROUNDS: Record<FeedMode, string> = {
+    discover: 'https://i.pinimg.com/1200x/5f/06/59/5f065984e4b8c2e1a05f4cdfc535b789.jpg',
+    all:      'https://i.pinimg.com/1200x/9e/15/17/9e15176dcf687db9d4626ca60d34961e.jpg',
+    my:       'https://i.pinimg.com/736x/10/86/14/108614008a12928220759c5d083c2afb.jpg',
+    uploaded: 'https://i.pinimg.com/736x/63/57/fd/6357fdfa456f43e0858dbbf86fb61acd.jpg',
+    saved:    'https://i.pinimg.com/736x/9a/fa/e4/9afae444206f5991697f06064ba1bd05.jpg',
+}
+
+const FEED_MODES: FeedMode[] = ['discover', 'all', 'my', 'uploaded', 'saved']
+
+const FEED_DESCRIPTIONS: Record<FeedMode, string> = {
+    discover: 'Треки, которые ты ещё не слышал — свежие открытия специально для тебя',
+    all:      'Вся музыка платформы — от новинок до классики',
+    my:       'Твои личные треки, собранные в одном месте',
+    uploaded: 'Треки, которые ты загрузил на платформу',
+    saved:    'Музыка, которую ты сохранил, чтобы вернуться',
+}
+
+const VinylRecord = ({ cover }: { cover?: string }) => (
+    <div style={{
+        width: 150,
+        height: 150,
+        borderRadius: '50%',
+        position: 'relative',
+        // boxShadow: '0 4px 24px rgba(0,0,0,0.9)',
+        flexShrink: 0,
+        background: `
+            radial-gradient(circle at center, transparent 20%, rgba(255,255,255,0.04) 20.5%, rgba(255,255,255,0.04) 22%, transparent 22.5%,
+            transparent 28%, rgba(255,255,255,0.04) 28.5%, rgba(255,255,255,0.04) 30%, transparent 30.5%,
+            transparent 36%, rgba(255,255,255,0.04) 36.5%, rgba(255,255,255,0.04) 38%, transparent 38.5%,
+            transparent 44%, rgba(255,255,255,0.04) 44.5%, rgba(255,255,255,0.04) 46%, transparent 46.5%),
+            #111
+        `,
+    }}>
+        <div style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 100, height: 100, borderRadius: '50%',
+            overflow: 'hidden', background: cover ? undefined : '#222',
+        }}>
+            {cover && <img src={cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        </div>
+        <div style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 12, height: 12, borderRadius: '50%',
+            background: '#000', zIndex: 1,
+        }} />
+    </div>
+)
 
 export const PlayerScene = () => {
     const navigate = useNavigate();
@@ -59,6 +108,9 @@ export const PlayerScene = () => {
     const feedLoadingRef = useRef(false);
     const [discoverVinyls, setDiscoverVinyls] = useState<VinylInfo[]>([]);
     const [discoverLoading, setDiscoverLoading] = useState(false);
+    const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+    const [savedTracks, setSavedTracks] = useState<LibTrack[]>([]);
+    const [savedTracksLoading, setSavedTracksLoading] = useState(false);
 
     useEffect(() => {
         const handler = () => setIsMobile(window.innerWidth < 640);
@@ -71,7 +123,7 @@ export const PlayerScene = () => {
         feedLoadingRef.current = true;
         if (skip === 0) setFeedLoading(true);
         try {
-            const shuffle = ['all', 'discover', 'my'].includes(mode) ? '&shuffle=true' : '';
+            const shuffle = '&shuffle=true';
             const r = await fetch(`${BASE_URL}/tracks?mode=${mode}&skip=${skip}&limit=${FEED_LIMIT}${shuffle}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -107,37 +159,12 @@ export const PlayerScene = () => {
         }
     }, [trackIndex, audioTracks.length, feedMode]);
 
-    const handleTrackClick = async (track: TrackItem) => {
-        const audioIndex = audioTracks.findIndex(t => t.id === String(track.id));
-        if (audioIndex !== -1) {
-            playTrack(audioIndex);
-            return;
-        }
-        try {
-            const resp = await fetch(`${BASE_URL}/tracks/${track.id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = await resp.json();
-            if (data?.stream_url) {
-                loadAndPlayExternal({
-                    id: String(data.id),
-                    name: data.title,
-                    artist: data.artist,
-                    cover: data.avatar_url ?? undefined,
-                    src: `${BASE_URL}${data.stream_url}`,
-                });
-            }
-        } catch {}
-    };
-
-    const handleModeClick = (mode: FeedMode) => {
-        const next = feedMode === mode ? null : mode;
-        setFeedMode(next);
+    const handleBannerClick = (mode: FeedMode) => {
+        setActiveBannerIndex(FEED_MODES.indexOf(mode));
+        setFeedMode(mode);
         feedSkipRef.current = 0;
         feedHasMoreRef.current = true;
-        if (next) {
-            loadMoreFeed(next, 0);
-        }
+        loadMoreFeed(mode, 0);
     };
 
     useEffect(() => {
@@ -150,6 +177,28 @@ export const PlayerScene = () => {
             .then((data: any[]) => { if (Array.isArray(data)) setDiscoverVinyls(data); })
             .catch(() => {})
             .finally(() => setDiscoverLoading(false));
+    }, [token]);
+
+    useEffect(() => {
+        if (!token) return;
+        setSavedTracksLoading(true);
+        fetch(`${BASE_URL}/tracks?mode=saved&limit=50`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then(r => r.json())
+            .then((data: any[]) => {
+                if (!Array.isArray(data)) return;
+                setSavedTracks(data.map((t: any) => ({
+                    id: String(t.id),
+                    title: t.title,
+                    artist: t.artist,
+                    cover: t.avatar_url ?? undefined,
+                    src: `${BASE_URL}${t.stream_url}`,
+                    user_id: t.user_id ? String(t.user_id) : undefined,
+                })));
+            })
+            .catch(() => {})
+            .finally(() => setSavedTracksLoading(false));
     }, [token]);
 
     useEffect(() => {
@@ -190,6 +239,29 @@ export const PlayerScene = () => {
             .finally(() => setLoading(false));
     }, [selectedVinylId, token]);
 
+    const handleTrackClick = async (track: TrackItem) => {
+        const audioIndex = audioTracks.findIndex(t => t.id === String(track.id));
+        if (audioIndex !== -1) {
+            playTrack(audioIndex);
+            return;
+        }
+        try {
+            const resp = await fetch(`${BASE_URL}/tracks/${track.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await resp.json();
+            if (data?.stream_url) {
+                loadAndPlayExternal({
+                    id: String(data.id),
+                    name: data.title,
+                    artist: data.artist,
+                    cover: data.avatar_url ?? undefined,
+                    src: `${BASE_URL}${data.stream_url}`,
+                });
+            }
+        } catch {}
+    };
+
     return (
         <div style={{
             width: '100vw',
@@ -201,178 +273,312 @@ export const PlayerScene = () => {
         }}>
             <PlayerTwo top />
 
-            {/* Canvas */}
+            {/* Left panel: Banner slider + 10 vinyls */}
             <div style={{
-                flex: isMobile ? 'none' : 1,
                 width: isMobile ? '100%' : undefined,
-                height: isMobile ? '45vh' : '100%',
-            }}>
-                <Canvas
-                    shadows
-                    camera={{ zoom: 3, position: [0, 10, 0], up: [0, 0, -1], fov: 45 }}
-                    gl={{
-                        toneMapping: THREE.ACESFilmicToneMapping,
-                        toneMappingExposure: 1,
-                        outputColorSpace: THREE.SRGBColorSpace,
-                    }}
-                >
-                    <Environment preset='park' />
-                    <ambientLight intensity={8} />
-                    <directionalLight
-                        position={[3, 6, -4]}
-                        intensity={2.5}
-                        castShadow
-                        shadow-mapSize={[2048, 2048]}
-                        shadow-camera-near={0.1}
-                        shadow-camera-far={30}
-                        shadow-camera-left={-5}
-                        shadow-camera-right={5}
-                        shadow-camera-top={5}
-                        shadow-camera-bottom={-5}
-                    />
-                    <VinylTransport
-                        position={[0, 0, 0]}
-                        scale={5}
-                        playing={isPlaying}
-                        click={toggle}
-                        centerImageUrl={vinyl?.disk_image ? toUrl(vinyl.disk_image) : undefined}
-                    />
-                    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -1]} receiveShadow>
-                        <planeGeometry args={[40, 40]} />
-                        <shadowMaterial opacity={0.2} />
-                    </mesh>
-                    <OrbitControls makeDefault enableRotate={false} enablePan={false} />
-                </Canvas>
-            </div>
-
-            {/* Panel */}
-            <div style={{
-                width: isMobile ? '100%' : '28vw',
-                flex: isMobile ? 1 : undefined,
-                height: isMobile ? undefined : '100%',
+                flex: isMobile ? undefined : 1,
+                height: isMobile ? '42vh' : '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'flex-start',
-                alignItems: 'flex-start',
-                padding: isMobile ? '1.25rem 1.25rem 5.5rem' : '2rem',
-                paddingTop: isMobile ? '1.25rem' : '6rem',
-                boxSizing: 'border-box',
-                borderLeft: isMobile ? 'none' : '1px solid rgb(255, 255, 255)',
-                borderTop: isMobile ? '1px solid rgba(255,255,255,0.15)' : 'none',
                 overflowY: 'auto',
+                paddingTop: isMobile ? '3.5rem' : '5.5rem',
+                boxSizing: 'border-box',
+                borderRight: isMobile ? 'none' : '1px solid rgba(255,255,255,0.15)',
+                borderBottom: isMobile ? '1px solid rgba(255,255,255,0.15)' : 'none',
             }}>
-                {selectedVinylId === null ? (
-                    <>
-                        {/* Mode buttons */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1.25rem', width: '100%' }}>
-                            {(['all', 'discover', 'my', 'uploaded', 'saved'] as FeedMode[]).map(mode => (
+                {/* Banner slider */}
+                <div style={{
+                    position: 'relative',
+                    margin: '0 1.5rem',
+                    height: isMobile ? '110px' : 'clamp(200px, 240vh, 300px)',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    borderRadius: '0.5rem',
+                }}>
+                    {FEED_MODES.map((mode, i) => {
+                        const isActive = i === activeBannerIndex;
+                        return (
+                            <div
+                                key={mode}
+                                onClick={() => handleBannerClick(mode)}
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    opacity: isActive ? 1 : 0,
+                                    pointerEvents: isActive ? 'auto' : 'none',
+                                    // transition: 'opacity 0.4s ease',
+                                    cursor: 'pointer',
+                                    backgroundColor: '#1c1c1c',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-start',
+                                    justifyContent: 'flex-end',
+                                    padding: '1.75rem 1.5rem 2rem 6rem',
+                                    boxSizing: 'border-box',
+                                    gap: '0.5rem',
+                                }}
+                            >
+                                <img src={FEED_BACKGROUNDS[mode]} style={{objectFit: 'cover', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0}}/>
+                                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 60%)', zIndex: 0 }} />
+                                <p style={{
+                                    color: '#fff',
+                                    fontSize: '1.5rem',
+                                    fontWeight: 800,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.06em',
+                                    margin: 0,
+                                    position: 'relative',
+                                    zIndex: 1,
+                                    lineHeight: 1.1,
+                                }}>
+                                    {FEED_LABELS[mode]}
+                                </p>
+                                <p style={{
+                                    color: 'rgba(255,255,255,0.7)',
+                                    fontSize: '0.75rem',
+                                    margin: 0,
+                                    position: 'relative',
+                                    zIndex: 1,
+                                    lineHeight: 1.4,
+                                    maxWidth: '80%',
+                                }}>
+                                    {FEED_DESCRIPTIONS[mode]}
+                                </p>
                                 <button
-                                    key={mode}
-                                    onClick={() => handleModeClick(mode)}
+                                    onClick={e => { e.stopPropagation(); handleBannerClick(mode); }}
                                     style={{
-                                        border: `1px solid ${feedMode === mode ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)'}`,
-                                        background: feedMode === mode ? 'rgba(255,255,255,0.1)' : 'transparent',
-                                        color: feedMode === mode ? '#fff' : 'rgba(255,255,255,0.45)',
-                                        padding: '0.3rem 0.75rem',
-                                        cursor: feedLoading && feedMode === mode ? 'not-allowed' : 'pointer',
-                                        fontSize: '0.62rem',
-                                        letterSpacing: '0.15em',
-                                        textTransform: 'uppercase',
-                                        borderRadius: '0.25rem',
-                                        transition: 'all 0.15s',
-                                        opacity: feedLoading && feedMode === mode ? 0.6 : 1,
-                                    }}
-                                >
-                                    {feedLoading && feedMode === mode ? '...' : FEED_LABELS[mode]}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Discover vinyls */}
-                        <div style={{ width: '100%', marginBottom: '1.25rem' }}>
-                            {discoverLoading ? (
-                                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>загрузка...</p>
-                            ) : discoverVinyls.map(v => (
-                                <div
-                                    key={v.id}
-                                    onClick={() => navigate(`/pages/vinyl?vinylId=${v.id}`)}
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.65rem',
-                                        padding: '0.55rem 0',
-                                        borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                        background: 'rgba(255,255,255,0.15)',
+                                        border: '1px solid rgba(255,255,255,0.35)',
+                                        color: '#fff',
+                                        padding: '0.5rem 1.25rem',
                                         cursor: 'pointer',
+                                        fontSize: '0.75rem',
+                                        letterSpacing: '0.1em',
+                                        textTransform: 'uppercase',
+                                        transition: 'background 0.15s',
+                                        opacity: feedLoading && feedMode === mode ? 0.5 : 1,
+                                        position: 'relative',
+                                        zIndex: 1,
+                                        marginTop: '0.25rem',
                                     }}
+                                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.28)'; }}
+                                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.15)'; }}
                                 >
-                                    <div style={{
-                                        width: 10,
-                                        height: 10,
-                                        borderRadius: '50%',
-                                        background: v.bg_color ?? '#fff',
-                                        flexShrink: 0,
-                                    }} />
-                                    <div>
-                                        <p style={{ color: '#fff', fontSize: '0.82rem', fontWeight: 600, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            {v.name}
-                                        </p>
-                                        {v.artist && (
-                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', margin: '0.1rem 0 0', letterSpacing: '0.04em' }}>
-                                                {v.artist}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                    {feedLoading && feedMode === mode ? '...' : '▶ Играть'}
+                                </button>
+                            </div>
+                        );
+                    })}
 
+                    {/* Prev arrow */}
+                    {activeBannerIndex > 0 && (
                         <button
-                            onClick={() => navigate('/pages/vinyl')}
+                            onClick={e => { e.stopPropagation(); setActiveBannerIndex(i => i - 1); }}
                             style={{
-                                border: '1px solid rgba(255,255,255,0.25)',
-                                background: 'transparent',
-                                color: 'rgba(255,255,255,0.4)',
-                                padding: '0.5rem 1.5rem',
+                                position: 'absolute',
+                                left: 0, top: 0, bottom: 0,
+                                width: '2.5rem',
+                                background: 'linear-gradient(to right, rgba(0, 0, 0, 0), transparent)',
+                                border: 'none',
+                                color: 'rgba(255,255,255,0.75)',
                                 cursor: 'pointer',
-                                fontSize: '0.65rem',
-                                letterSpacing: '0.18em',
-                                textTransform: 'uppercase',
-                                transition: 'border-color 0.2s, color 0.2s',
+                                fontSize: '1.4rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                             }}
-                            onMouseEnter={e => {
-                                const el = e.currentTarget as HTMLButtonElement;
-                                el.style.borderColor = 'rgb(255, 255, 255)';
-                                el.style.color = '#fff';
+                        >‹</button>
+                    )}
+
+                    {/* Next arrow */}
+                    {activeBannerIndex < FEED_MODES.length - 1 && (
+                        <button
+                            onClick={e => { e.stopPropagation(); setActiveBannerIndex(i => i + 1); }}
+                            style={{
+                                position: 'absolute',
+                                right: 0, top: 0, bottom: 0,
+                                width: '2.5rem',
+                                background: 'linear-gradient(to left, rgba(255, 255, 255, 0), transparent)',
+                                border: 'none',
+                                color: 'rgba(255,255,255,0.75)',
+                                cursor: 'pointer',
+                                fontSize: '1.4rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                             }}
-                            onMouseLeave={e => {
-                                const el = e.currentTarget as HTMLButtonElement;
-                                el.style.borderColor = 'rgba(255,255,255,0.25)';
-                                el.style.color = 'rgba(255,255,255,0.4)';
+                        >›</button>
+                    )}
+
+                    {/* Dots */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '0.6rem',
+                        right: '0.75rem',
+                        display: 'flex',
+                        gap: '0.25rem',
+                        alignItems: 'center',
+                    }}>
+                        {FEED_MODES.map((_, i) => (
+                            <div
+                                key={i}
+                                onClick={e => { e.stopPropagation(); setActiveBannerIndex(i); }}
+                                style={{
+                                    width: i === activeBannerIndex ? 14 : 5,
+                                    height: 5,
+                                    borderRadius: '3px',
+                                    background: i === activeBannerIndex ? '#fff' : 'rgba(255,255,255,0.3)',
+                                    cursor: 'pointer',
+                                    transition: 'width 0.25s, background 0.25s',
+                                }}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* 10 discover vinyls */}
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '1rem 1.5rem 0', flexShrink: 0 }}>Новые пластинки</p>
+                <div style={{ flexShrink: 0, overflowX: 'auto', overflowY: 'hidden', width: '100%', padding: '1rem 1.5rem', boxSizing: 'border-box', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                    {discoverLoading ? (
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0, alignSelf: 'center' }}>загрузка...</p>
+                    ) : discoverVinyls.map(v => (
+                        <div
+                            key={v.id}
+                            onClick={() => navigate(`/pages/vinyl?vinylId=${v.id}`)}
+                            style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                cursor: 'pointer',
+                                flexShrink: 0,
+                                width: 150,
                             }}
                         >
-                            Выбрать пластинку →
-                        </button>
-                    </>
-                ) : loading ? (
-                    <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>загрузка...</p>
-                ) : (
-                    <>
-                        {vinyl && (
-                            <div style={{ marginBottom: '1.25rem', width: '100%' }}>
-                                <p style={{ color: '#fff', fontSize: isMobile ? '1.1rem' : '1.4rem', fontWeight: 700, textTransform: 'uppercase', margin: 0, lineHeight: 1.1 }}>
+                            <VinylRecord cover={v.disk_image ? toUrl(v.disk_image) : undefined} />
+                            <p style={{
+                                color: '#fff',
+                                fontSize: '0.6rem',
+                                fontWeight: 600,
+                                margin: 0,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.04em',
+                                textAlign: 'center',
+                                width: '100%',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                            }}>
+                                {v.name}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Saved tracks */}
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 1.5rem 0.5rem', flexShrink: 0 }}>Избранные треки</p>
+                <div style={{ width: '100%', padding: '0 1.5rem 2rem', boxSizing: 'border-box' }}>
+                    {savedTracksLoading ? (
+                        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>загрузка...</p>
+                    ) : savedTracks.map(t => (
+                        <TrackRow key={t.id} track={t} accentWhite onRemove={id => setSavedTracks(prev => prev.filter(x => x.id !== id))} />
+                    ))}
+                </div>
+            </div>
+
+            {/* Right panel: Canvas + tracks + button */}
+            <div style={{
+                width: isMobile ? '100%' : '22vw',
+                flex: isMobile ? 1 : undefined,
+                height: isMobile ? undefined : '100%',
+                minHeight: isMobile ? '58vh' : undefined,
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                borderLeft: isMobile ? 'none' : '1px solid rgba(255,255,255,0.15)',
+            }}>
+                {/* Canvas */}
+                <div style={{ height: isMobile ? '38vh' : '60%', flexShrink: 0, paddingTop: isMobile ? 0 : '4rem', boxSizing: 'border-box' }}>
+                    <Canvas
+                        shadows
+                        camera={{ zoom: 3, position: [0, 10, 0], up: [0, 0, -1], fov: 45 }}
+                        gl={{
+                            toneMapping: THREE.ACESFilmicToneMapping,
+                            toneMappingExposure: 1,
+                            outputColorSpace: THREE.SRGBColorSpace,
+                        }}
+                    >
+                        <Environment preset='park' />
+                        <ambientLight intensity={8} />
+                        <directionalLight
+                            position={[3, 6, -4]}
+                            intensity={2.5}
+                            castShadow
+                            shadow-mapSize={[2048, 2048]}
+                            shadow-camera-near={0.1}
+                            shadow-camera-far={30}
+                            shadow-camera-left={-5}
+                            shadow-camera-right={5}
+                            shadow-camera-top={5}
+                            shadow-camera-bottom={-5}
+                        />
+                        <VinylTransport
+                            position={[0, 0, 0]}
+                            scale={5}
+                            playing={isPlaying}
+                            click={toggle}
+                            centerImageUrl={vinyl?.disk_image ? toUrl(vinyl.disk_image) : undefined}
+                        />
+                        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, -1]} receiveShadow>
+                            <planeGeometry args={[40, 40]} />
+                            <shadowMaterial opacity={0.2} />
+                        </mesh>
+                        <OrbitControls makeDefault enableRotate={false} enablePan={false} />
+                    </Canvas>
+                </div>
+
+                {/* Scrollable info + tracks */}
+                <div style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    padding: '1rem 1.25rem',
+                    boxSizing: 'border-box',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                }}>
+                    {loading ? (
+                        <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>загрузка...</p>
+                    ) : vinyl && selectedVinylId !== null ? (
+                        <>
+                            <div style={{ marginBottom: '0.5rem' }}>
+                                <p style={{
+                                    color: '#fff',
+                                    fontSize: '0.95rem',
+                                    fontWeight: 700,
+                                    textTransform: 'uppercase',
+                                    margin: 0,
+                                    lineHeight: 1.2,
+                                    wordBreak: 'break-word',
+                                }}>
                                     {vinyl.name}
                                 </p>
                                 {vinyl.artist && (
-                                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', fontWeight: 500, textTransform: 'uppercase', margin: '0.3rem 0 0', letterSpacing: '0.08em' }}>
+                                    <p style={{
+                                        color: 'rgba(255,255,255,0.5)',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 500,
+                                        textTransform: 'uppercase',
+                                        margin: '0.2rem 0 0',
+                                        letterSpacing: '0.07em',
+                                        wordBreak: 'break-word',
+                                    }}>
                                         {vinyl.artist}
                                     </p>
                                 )}
                             </div>
-                        )}
-
-                        <div style={{ width: '100%', marginBottom: '1.5rem' }}>
                             {tracks.length === 0 ? (
-                                <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>нет треков</p>
+                                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>нет треков</p>
                             ) : tracks.map(track => {
                                 const isActive = currentTrack?.id === String(track.id);
                                 return (
@@ -380,55 +586,64 @@ export const PlayerScene = () => {
                                         key={track.id}
                                         onClick={() => handleTrackClick(track)}
                                         style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            padding: '0.7rem 0',
-                                            borderBottom: '1px solid rgba(255,255,255,0.15)',
+                                            padding: '0.55rem 0',
+                                            borderBottom: '1px solid rgba(255,255,255,0.1)',
                                             cursor: 'pointer',
                                         }}
                                     >
-                                        <div>
-                                            <p style={{ color: isActive ? (vinyl?.bg_color ?? '#fff') : '#fff', fontSize: '0.88rem', fontWeight: 600, margin: 0 }}>
-                                                {track.title}
-                                            </p>
-                                            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.73rem', margin: '0.15rem 0 0' }}>
-                                                {track.artist}
-                                            </p>
-                                        </div>
+                                        <p style={{
+                                            color: isActive ? (vinyl.bg_color ?? '#fff') : '#fff',
+                                            fontSize: '0.82rem',
+                                            fontWeight: 600,
+                                            margin: 0,
+                                            wordBreak: 'break-word',
+                                        }}>
+                                            {track.title}
+                                        </p>
+                                        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', margin: '0.1rem 0 0', wordBreak: 'break-word' }}>
+                                            {track.artist}
+                                        </p>
                                     </div>
                                 );
                             })}
-                        </div>
+                        </>
+                    ) : null}
+                </div>
 
-                        <button
-                            onClick={() => navigate('/pages/vinyl')}
-                            style={{
-                                border: '1px solid rgba(255,255,255,0.3)',
-                                background: 'transparent',
-                                color: 'rgba(255,255,255,0.5)',
-                                padding: '0.5rem 1.5rem',
-                                cursor: 'pointer',
-                                fontSize: '0.65rem',
-                                letterSpacing: '0.18em',
-                                textTransform: 'uppercase',
-                                alignSelf: 'flex-start',
-                                transition: 'border-color 0.2s, color 0.2s',
-                            }}
-                            onMouseEnter={e => {
-                                const el = e.currentTarget as HTMLButtonElement;
-                                el.style.borderColor = 'rgb(255, 255, 255)';
-                                el.style.color = '#fff';
-                            }}
-                            onMouseLeave={e => {
-                                const el = e.currentTarget as HTMLButtonElement;
-                                el.style.borderColor = 'rgba(255,255,255,0.3)';
-                                el.style.color = 'rgba(255,255,255,0.5)';
-                            }}
-                        >
-                            Сменить пластинку
-                        </button>
-                    </>
-                )}
+                {/* Button fixed at bottom */}
+                <div style={{
+                    padding: isMobile ? '0.75rem 1.25rem 1.5rem' : '0.75rem 1.25rem 1.25rem',
+                    flexShrink: 0,
+                    borderTop: '1px solid rgba(255,255,255,0.1)',
+                }}>
+                    <button
+                        onClick={() => navigate('/pages/vinyl')}
+                        style={{
+                            width: '100%',
+                            border: '1px solid rgba(255,255,255,0.25)',
+                            background: 'transparent',
+                            color: 'rgba(255,255,255,0.4)',
+                            padding: '0.5rem 1rem',
+                            cursor: 'pointer',
+                            fontSize: '0.62rem',
+                            letterSpacing: '0.18em',
+                            textTransform: 'uppercase',
+                            transition: 'border-color 0.2s, color 0.2s',
+                        }}
+                        onMouseEnter={e => {
+                            const el = e.currentTarget as HTMLButtonElement;
+                            el.style.borderColor = 'rgb(255, 255, 255)';
+                            el.style.color = '#fff';
+                        }}
+                        onMouseLeave={e => {
+                            const el = e.currentTarget as HTMLButtonElement;
+                            el.style.borderColor = 'rgba(255,255,255,0.25)';
+                            el.style.color = 'rgba(255,255,255,0.4)';
+                        }}
+                    >
+                        {selectedVinylId !== null ? 'Сменить пластинку' : 'Выбрать пластинку →'}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -41,6 +41,7 @@ interface TrackRowProps {
     onRemove?: (id: string) => void
     onDelete?: (id: string) => void
     onEdited?: (updated: LibTrack) => void
+    accentWhite?: boolean
 }
 
 const editInputStyle: React.CSSProperties = {
@@ -148,7 +149,7 @@ const ReportIcon = () => (
     </svg>
 )
 
-export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, onEdited }) => {
+export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, onEdited, accentWhite }) => {
     const { token } = useAuth()
     const navigate = useNavigate()
     const { loadAndPlayExternal, currentTrack, isPlaying, toggle } = useAudioPlayer()
@@ -290,7 +291,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.75rem 0',
-                borderBottom: '1px solid #2a2a2a',
+                borderBottom: `1px solid ${accentWhite ? 'rgba(255,255,255,0.15)' : '#2a2a2a'}`,
             }}>
                 <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0, cursor: 'pointer' }} onClick={handlePlay}>
                     {localTrack.cover
@@ -336,9 +337,9 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                     <button
                         onClick={() => setMenuOpen(o => !o)}
                         title="menu"
-                        style={{ background: 'none', border: 'none', color: menuOpen ? '#fff' : '#444', cursor: 'pointer', padding: '0.4rem 0.5rem', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
+                        style={{ background: 'none', border: 'none', color: menuOpen ? '#fff' : (accentWhite ? 'rgba(255,255,255,0.6)' : '#444'), cursor: 'pointer', padding: '0.4rem 0.5rem', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.2s' }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = '#444' }}
+                        onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = accentWhite ? 'rgba(255,255,255,0.6)' : '#444' }}
                     >
                         <DotsIcon />
                     </button>
