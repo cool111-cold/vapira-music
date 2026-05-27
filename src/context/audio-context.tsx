@@ -34,6 +34,8 @@ interface AudioContextType {
     prev: () => void;
     playTrack: (index: number) => void;
     loadAndPlayExternal: (track: Track) => void;
+    loadQueueAndPlay: (tracks: Track[]) => void;
+    appendToQueue: (tracks: Track[]) => void;
     selectedVinylId: number | null;
     setSelectedVinylId: (id: number | null) => void;
 }
@@ -62,6 +64,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     tracksRef.current = tracks;
     const isInitializedRef = useRef(false);
     const pendingPlayIdRef = useRef<string | null>(null);
+    const pendingQueuePlayRef = useRef(false);
 
     // loadTrackRef always holds the latest version of loadTrack so Howl's
     // onend callback never closes over a stale copy.
@@ -164,6 +167,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             howlRef.current = null;
             return;
         }
+        if (pendingQueuePlayRef.current) {
+            pendingQueuePlayRef.current = false;
+            isInitializedRef.current = true;
+            setTrackIndex(0);
+            trackIndexRef.current = 0;
+            loadTrackRef.current(0, true);
+            return;
+        }
         // Play a track added by loadAndPlayExternal once state is updated
         if (pendingPlayIdRef.current !== null) {
             const id = pendingPlayIdRef.current;
@@ -240,6 +251,22 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTracks(prev => [...prev, track]);
     }, [playTrack]);
 
+    const loadQueueAndPlay = useCallback((newTracks: Track[]) => {
+        if (newTracks.length === 0) return;
+        pendingQueuePlayRef.current = true;
+        pendingPlayIdRef.current = null;
+        setTracks(newTracks);
+    }, []);
+
+    const appendToQueue = useCallback((newTracks: Track[]) => {
+        if (newTracks.length === 0) return;
+        setTracks(prev => {
+            const existingIds = new Set(prev.map(t => t.id));
+            const fresh = newTracks.filter(t => !existingIds.has(t.id));
+            return fresh.length > 0 ? [...prev, ...fresh] : prev;
+        });
+    }, []);
+
     return (
         <AudioCtx.Provider
             value={{
@@ -259,6 +286,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 prev,
                 playTrack,
                 loadAndPlayExternal,
+                loadQueueAndPlay,
+                appendToQueue,
                 selectedVinylId,
                 setSelectedVinylId,
             }}

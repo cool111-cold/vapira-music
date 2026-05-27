@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
@@ -25,13 +25,26 @@ interface TrackItem {
     title: string;
     artist: string;
     avatar_url: string | null;
-    position: number;
+    stream_url: string;
+    position?: number;
+}
+
+const FEED_LIMIT = 10;
+
+type FeedMode = 'all' | 'discover' | 'my' | 'uploaded' | 'saved'
+
+const FEED_LABELS: Record<FeedMode, string> = {
+    all: 'Все',
+    discover: 'Открытия',
+    my: 'Мои',
+    uploaded: 'Загруженные',
+    saved: 'Сохранённые',
 }
 
 export const PlayerScene = () => {
     const navigate = useNavigate();
     const { token } = useAuth();
-    const { tracks: audioTracks, currentTrack, isPlaying, toggle, playTrack, selectedVinylId, loadAndPlayExternal } = useAudioPlayer();
+    const { tracks: audioTracks, trackIndex, currentTrack, isPlaying, toggle, playTrack, selectedVinylId, loadAndPlayExternal, loadQueueAndPlay, appendToQueue } = useAudioPlayer();
     const [searchParams] = useSearchParams();
 
     const [vinyl, setVinyl] = useState<VinylInfo | null>(null);
@@ -39,12 +52,60 @@ export const PlayerScene = () => {
     const [loading, setLoading] = useState(false);
     const sharedTrackHandledRef = useRef(false);
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640);
+    const [feedMode, setFeedMode] = useState<FeedMode | null>(null);
+    const [feedLoading, setFeedLoading] = useState(false);
+    const feedSkipRef = useRef(0);
+    const feedHasMoreRef = useRef(true);
+    const feedLoadingRef = useRef(false);
+    const [discoverVinyls, setDiscoverVinyls] = useState<VinylInfo[]>([]);
+    const [discoverLoading, setDiscoverLoading] = useState(false);
 
     useEffect(() => {
         const handler = () => setIsMobile(window.innerWidth < 640);
         window.addEventListener('resize', handler);
         return () => window.removeEventListener('resize', handler);
     }, []);
+
+    const loadMoreFeed = useCallback(async (mode: FeedMode, skip: number) => {
+        if (feedLoadingRef.current) return;
+        feedLoadingRef.current = true;
+        if (skip === 0) setFeedLoading(true);
+        try {
+            const shuffle = ['all', 'discover', 'my'].includes(mode) ? '&shuffle=true' : '';
+            const r = await fetch(`${BASE_URL}/tracks?mode=${mode}&skip=${skip}&limit=${FEED_LIMIT}${shuffle}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data: any[] = await r.json();
+            if (!Array.isArray(data)) return;
+            const newTracks = data.map((t: any) => ({
+                id: String(t.id),
+                name: t.title,
+                artist: t.artist,
+                cover: t.avatar_url ?? undefined,
+                src: `${BASE_URL}${t.stream_url}`,
+            }));
+            if (skip === 0) {
+                loadQueueAndPlay(newTracks);
+            } else {
+                appendToQueue(newTracks);
+            }
+            feedSkipRef.current = skip + data.length;
+            if (data.length < FEED_LIMIT) feedHasMoreRef.current = false;
+        } catch {} finally {
+            feedLoadingRef.current = false;
+            setFeedLoading(false);
+        }
+    }, [token, loadQueueAndPlay, appendToQueue]);
+
+    const loadMoreFeedRef = useRef(loadMoreFeed);
+    loadMoreFeedRef.current = loadMoreFeed;
+
+    useEffect(() => {
+        if (!feedMode || !feedHasMoreRef.current) return;
+        if (audioTracks.length > 0 && trackIndex >= audioTracks.length - 5) {
+            loadMoreFeedRef.current(feedMode, feedSkipRef.current);
+        }
+    }, [trackIndex, audioTracks.length, feedMode]);
 
     const handleTrackClick = async (track: TrackItem) => {
         const audioIndex = audioTracks.findIndex(t => t.id === String(track.id));
@@ -68,6 +129,28 @@ export const PlayerScene = () => {
             }
         } catch {}
     };
+
+    const handleModeClick = (mode: FeedMode) => {
+        const next = feedMode === mode ? null : mode;
+        setFeedMode(next);
+        feedSkipRef.current = 0;
+        feedHasMoreRef.current = true;
+        if (next) {
+            loadMoreFeed(next, 0);
+        }
+    };
+
+    useEffect(() => {
+        if (!token) return;
+        setDiscoverLoading(true);
+        fetch(`${BASE_URL}/vinyl?mode=discover&shuffle=true&limit=10`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then(r => r.json())
+            .then((data: any[]) => { if (Array.isArray(data)) setDiscoverVinyls(data); })
+            .catch(() => {})
+            .finally(() => setDiscoverLoading(false));
+    }, [token]);
 
     useEffect(() => {
         const trackId = searchParams.get('trackId');
@@ -169,8 +252,8 @@ export const PlayerScene = () => {
                 height: isMobile ? undefined : '100%',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: selectedVinylId !== null ? 'flex-start' : 'center',
-                alignItems: selectedVinylId !== null ? 'flex-start' : 'center',
+                justifyContent: 'flex-start',
+                alignItems: 'flex-start',
                 padding: isMobile ? '1.25rem 1.25rem 5.5rem' : '2rem',
                 paddingTop: isMobile ? '1.25rem' : '6rem',
                 boxSizing: 'border-box',
@@ -179,34 +262,97 @@ export const PlayerScene = () => {
                 overflowY: 'auto',
             }}>
                 {selectedVinylId === null ? (
-                    <button
-                        onClick={() => navigate('/pages/vinyl')}
-                        style={{
-                            border: '1px solid rgb(255, 255, 255)',
-                            background: 'transparent',
-                            color: '#aaa',
-                            padding: '0.75rem 2rem',
-                            cursor: 'pointer',
-                            fontSize: '0.7rem',
-                            letterSpacing: '0.2em',
-                            textTransform: 'uppercase',
-                            transition: 'border-color 0.2s, color 0.2s, background 0.2s',
-                        }}
-                        onMouseEnter={e => {
-                            const el = e.currentTarget as HTMLButtonElement;
-                            el.style.background = 'rgb(255, 255, 255)';
-                            el.style.borderColor = 'rgb(255, 255, 255)';
-                            el.style.color = '#000';
-                        }}
-                        onMouseLeave={e => {
-                            const el = e.currentTarget as HTMLButtonElement;
-                            el.style.background = 'transparent';
-                            el.style.borderColor = 'rgba(255,255,255,0.25)';
-                            el.style.color = '#aaa';
-                        }}
-                    >
-                        Выбрать пластинку →
-                    </button>
+                    <>
+                        {/* Mode buttons */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '1.25rem', width: '100%' }}>
+                            {(['all', 'discover', 'my', 'uploaded', 'saved'] as FeedMode[]).map(mode => (
+                                <button
+                                    key={mode}
+                                    onClick={() => handleModeClick(mode)}
+                                    style={{
+                                        border: `1px solid ${feedMode === mode ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)'}`,
+                                        background: feedMode === mode ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                        color: feedMode === mode ? '#fff' : 'rgba(255,255,255,0.45)',
+                                        padding: '0.3rem 0.75rem',
+                                        cursor: feedLoading && feedMode === mode ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.62rem',
+                                        letterSpacing: '0.15em',
+                                        textTransform: 'uppercase',
+                                        borderRadius: '0.25rem',
+                                        transition: 'all 0.15s',
+                                        opacity: feedLoading && feedMode === mode ? 0.6 : 1,
+                                    }}
+                                >
+                                    {feedLoading && feedMode === mode ? '...' : FEED_LABELS[mode]}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Discover vinyls */}
+                        <div style={{ width: '100%', marginBottom: '1.25rem' }}>
+                            {discoverLoading ? (
+                                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0 }}>загрузка...</p>
+                            ) : discoverVinyls.map(v => (
+                                <div
+                                    key={v.id}
+                                    onClick={() => navigate(`/pages/vinyl?vinylId=${v.id}`)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.65rem',
+                                        padding: '0.55rem 0',
+                                        borderBottom: '1px solid rgba(255,255,255,0.1)',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: '50%',
+                                        background: v.bg_color ?? '#fff',
+                                        flexShrink: 0,
+                                    }} />
+                                    <div>
+                                        <p style={{ color: '#fff', fontSize: '0.82rem', fontWeight: 600, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                            {v.name}
+                                        </p>
+                                        {v.artist && (
+                                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', margin: '0.1rem 0 0', letterSpacing: '0.04em' }}>
+                                                {v.artist}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => navigate('/pages/vinyl')}
+                            style={{
+                                border: '1px solid rgba(255,255,255,0.25)',
+                                background: 'transparent',
+                                color: 'rgba(255,255,255,0.4)',
+                                padding: '0.5rem 1.5rem',
+                                cursor: 'pointer',
+                                fontSize: '0.65rem',
+                                letterSpacing: '0.18em',
+                                textTransform: 'uppercase',
+                                transition: 'border-color 0.2s, color 0.2s',
+                            }}
+                            onMouseEnter={e => {
+                                const el = e.currentTarget as HTMLButtonElement;
+                                el.style.borderColor = 'rgb(255, 255, 255)';
+                                el.style.color = '#fff';
+                            }}
+                            onMouseLeave={e => {
+                                const el = e.currentTarget as HTMLButtonElement;
+                                el.style.borderColor = 'rgba(255,255,255,0.25)';
+                                el.style.color = 'rgba(255,255,255,0.4)';
+                            }}
+                        >
+                            Выбрать пластинку →
+                        </button>
+                    </>
                 ) : loading ? (
                     <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>загрузка...</p>
                 ) : (

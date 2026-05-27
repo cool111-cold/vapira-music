@@ -340,7 +340,7 @@ const SavedTracksList = ({ token }: { token: string }) => {
 
     useEffect(() => {
         setSavedLoading(true)
-        fetch(`${BASE}/saved`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${BASE}/tracks?mode=saved`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
             .then(data => data.map((t: any) => ({
                 id: String(t.id),
@@ -420,7 +420,7 @@ const UploadedTracksList = ({ token }: { token: string }) => {
 
     useEffect(() => {
         setLoading(true)
-        fetch(`${BASE}/tracks`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${BASE}/tracks?mode=uploaded`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
             .then(data => data.map((t: any) => ({
                 id: String(t.id),

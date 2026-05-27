@@ -496,8 +496,9 @@ export const UserProfilePage = () => {
                             <TabBtn active={subTab === 'saved'} onClick={() => setSubTab('saved')} label="Сохранённые" />
                         </div>
                         {subTab === 'uploaded' && (
-                            <UserTracksList userId={id} token={token} endpoint={`/users/${id}/tracks`} />
+                            <UserTracksList userId={id} token={token} endpoint={`/users/${id}/tracks?mode=uploaded`} />
                         )}
+                        {/* ?mode=saved` */}
                         {subTab === 'saved' && (
                             <UserTracksList userId={id} token={token} endpoint={`/users/${id}/saved-tracks`} />
                         )}
