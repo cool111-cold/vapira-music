@@ -57,38 +57,41 @@ const FEED_DESCRIPTIONS: Record<FeedMode, string> = {
     saved:    'Музыка, которую ты сохранил, чтобы вернуться',
 }
 
-const VinylRecord = ({ cover }: { cover?: string }) => (
-    <div style={{
-        width: 150,
-        height: 150,
-        borderRadius: '50%',
-        position: 'relative',
-        // boxShadow: '0 4px 24px rgba(0,0,0,0.9)',
-        flexShrink: 0,
-        background: `
-            radial-gradient(circle at center, transparent 20%, rgba(255,255,255,0.04) 20.5%, rgba(255,255,255,0.04) 22%, transparent 22.5%,
-            transparent 28%, rgba(255,255,255,0.04) 28.5%, rgba(255,255,255,0.04) 30%, transparent 30.5%,
-            transparent 36%, rgba(255,255,255,0.04) 36.5%, rgba(255,255,255,0.04) 38%, transparent 38.5%,
-            transparent 44%, rgba(255,255,255,0.04) 44.5%, rgba(255,255,255,0.04) 46%, transparent 46.5%),
-            #111
-        `,
-    }}>
+const VinylRecord = ({ cover, size = 150 }: { cover?: string; size?: number }) => {
+    const coverSize = Math.round(size * 0.67);
+    const holeSize = Math.round(size * 0.08);
+    return (
         <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 100, height: 100, borderRadius: '50%',
-            overflow: 'hidden', background: cover ? undefined : '#222',
+            width: size,
+            height: size,
+            borderRadius: '50%',
+            position: 'relative',
+            flexShrink: 0,
+            background: `
+                radial-gradient(circle at center, transparent 20%, rgba(255,255,255,0.04) 20.5%, rgba(255,255,255,0.04) 22%, transparent 22.5%,
+                transparent 28%, rgba(255,255,255,0.04) 28.5%, rgba(255,255,255,0.04) 30%, transparent 30.5%,
+                transparent 36%, rgba(255,255,255,0.04) 36.5%, rgba(255,255,255,0.04) 38%, transparent 38.5%,
+                transparent 44%, rgba(255,255,255,0.04) 44.5%, rgba(255,255,255,0.04) 46%, transparent 46.5%),
+                #111
+            `,
         }}>
-            {cover && <img src={cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: coverSize, height: coverSize, borderRadius: '50%',
+                overflow: 'hidden', background: cover ? undefined : '#222',
+            }}>
+                {cover && <img src={cover} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            </div>
+            <div style={{
+                position: 'absolute', top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: holeSize, height: holeSize, borderRadius: '50%',
+                background: '#000', zIndex: 1,
+            }} />
         </div>
-        <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 12, height: 12, borderRadius: '50%',
-            background: '#000', zIndex: 1,
-        }} />
-    </div>
-)
+    );
+}
 
 export const PlayerScene = () => {
     const navigate = useNavigate();
@@ -111,12 +114,17 @@ export const PlayerScene = () => {
     const [activeBannerIndex, setActiveBannerIndex] = useState(0);
     const [savedTracks, setSavedTracks] = useState<LibTrack[]>([]);
     const [savedTracksLoading, setSavedTracksLoading] = useState(false);
+    const [mobileTab, setMobileTab] = useState<'vinyls' | 'music'>('vinyls');
 
     useEffect(() => {
         const handler = () => setIsMobile(window.innerWidth < 640);
         window.addEventListener('resize', handler);
         return () => window.removeEventListener('resize', handler);
     }, []);
+
+    useEffect(() => {
+        if (isMobile && selectedVinylId !== null) setMobileTab('music');
+    }, [selectedVinylId, isMobile]);
 
     const loadMoreFeed = useCallback(async (mode: FeedMode, skip: number) => {
         if (feedLoadingRef.current) return;
@@ -273,24 +281,60 @@ export const PlayerScene = () => {
         }}>
             <PlayerTwo top />
 
+            {/* Mobile tab bar */}
+            {isMobile && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    zIndex: 20,
+                    display: 'flex',
+                }}>
+                    <div style={{ display: 'flex', gap: '0.25rem', padding: '0.4rem 1rem' }}>
+                    {(['vinyls', 'music'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setMobileTab(tab)}
+                            style={{
+                                background: mobileTab === tab ? 'rgba(255,255,255,0.12)' : 'none',
+                                border: '1px solid ' + (mobileTab === tab ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'),
+                                borderRadius: '2rem',
+                                color: mobileTab === tab ? '#fff' : 'rgba(255,255,255,0.4)',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                padding: '0.35rem 0.9rem',
+                                cursor: 'pointer',
+                                transition: 'color 0.2s, background 0.2s, border-color 0.2s',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {tab === 'vinyls' ? 'Музыка' : 'Пластинки'}
+                        </button>
+                    ))}
+                    </div>
+                </div>
+            )}
+
             {/* Left panel: Banner slider + 10 vinyls */}
             <div style={{
                 width: isMobile ? '100%' : undefined,
-                flex: isMobile ? undefined : 1,
-                height: isMobile ? '42vh' : '100%',
-                display: 'flex',
+                flex: 1,
+                display: isMobile && mobileTab !== 'vinyls' ? 'none' : 'flex',
                 flexDirection: 'column',
                 overflowY: 'auto',
-                paddingTop: isMobile ? '3.5rem' : '5.5rem',
+                paddingTop: isMobile ? '2.75rem' : '5.5rem',
+                paddingBottom: isMobile ? '7rem' : 0,
                 boxSizing: 'border-box',
                 borderRight: isMobile ? 'none' : '1px solid rgba(255,255,255,0.15)',
-                borderBottom: isMobile ? '1px solid rgba(255,255,255,0.15)' : 'none',
             }}>
                 {/* Banner slider */}
                 <div style={{
                     position: 'relative',
                     margin: '0 1.5rem',
-                    height: isMobile ? '110px' : 'clamp(200px, 240vh, 300px)',
+                    height: isMobile ? '220px' : 'clamp(200px, 240vh, 300px)',
                     flexShrink: 0,
                     overflow: 'hidden',
                     borderRadius: '0.5rem',
@@ -313,7 +357,7 @@ export const PlayerScene = () => {
                                     flexDirection: 'column',
                                     alignItems: 'flex-start',
                                     justifyContent: 'flex-end',
-                                    padding: '1.75rem 1.5rem 2rem 6rem',
+                                    padding: isMobile ? '1rem 1rem 1.25rem 2rem' : '1.75rem 1.5rem 2rem 4rem',
                                     boxSizing: 'border-box',
                                     gap: '0.5rem',
                                 }}
@@ -322,7 +366,7 @@ export const PlayerScene = () => {
                                 <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 60%)', zIndex: 0 }} />
                                 <p style={{
                                     color: '#fff',
-                                    fontSize: '1.5rem',
+                                    fontSize: isMobile ? '1.1rem' : '1.5rem',
                                     fontWeight: 800,
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.06em',
@@ -335,12 +379,12 @@ export const PlayerScene = () => {
                                 </p>
                                 <p style={{
                                     color: 'rgba(255,255,255,0.7)',
-                                    fontSize: '0.75rem',
+                                    fontSize: isMobile ? '0.65rem' : '0.75rem',
                                     margin: 0,
                                     position: 'relative',
                                     zIndex: 1,
                                     lineHeight: 1.4,
-                                    maxWidth: '80%',
+                                    maxWidth: '90%',
                                 }}>
                                     {FEED_DESCRIPTIONS[mode]}
                                 </p>
@@ -438,7 +482,7 @@ export const PlayerScene = () => {
 
                 {/* 10 discover vinyls */}
                 <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '1rem 1.5rem 0', flexShrink: 0 }}>Новые пластинки</p>
-                <div style={{ flexShrink: 0, overflowX: 'auto', overflowY: 'hidden', width: '100%', padding: '1rem 1.5rem', boxSizing: 'border-box', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                <div className="hide-scrollbar" style={{ flexShrink: 0, overflowX: 'auto', overflowY: 'hidden', width: '100%', padding: '1rem 1.5rem', boxSizing: 'border-box', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
                     {discoverLoading ? (
                         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', letterSpacing: '0.15em', textTransform: 'uppercase', margin: 0, alignSelf: 'center' }}>загрузка...</p>
                     ) : discoverVinyls.map(v => (
@@ -452,10 +496,10 @@ export const PlayerScene = () => {
                                 gap: '0.4rem',
                                 cursor: 'pointer',
                                 flexShrink: 0,
-                                width: 150,
+                                width: isMobile ? 90 : 150,
                             }}
                         >
-                            <VinylRecord cover={v.disk_image ? toUrl(v.disk_image) : undefined} />
+                            <VinylRecord cover={v.disk_image ? toUrl(v.disk_image) : undefined} size={isMobile ? 90 : 150} />
                             <p style={{
                                 color: '#fff',
                                 fontSize: '0.6rem',
@@ -489,16 +533,15 @@ export const PlayerScene = () => {
             {/* Right panel: Canvas + tracks + button */}
             <div style={{
                 width: isMobile ? '100%' : '22vw',
-                flex: isMobile ? 1 : undefined,
-                height: isMobile ? undefined : '100%',
-                minHeight: isMobile ? '58vh' : undefined,
-                display: 'flex',
+                height: isMobile ? 'calc(100vh - 7rem)' : '100%',
+                flex: isMobile ? undefined : undefined,
+                display: isMobile && mobileTab !== 'music' ? 'none' : 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
                 borderLeft: isMobile ? 'none' : '1px solid rgba(255,255,255,0.15)',
             }}>
                 {/* Canvas */}
-                <div style={{ height: isMobile ? '38vh' : '60%', flexShrink: 0, paddingTop: isMobile ? 0 : '4rem', boxSizing: 'border-box' }}>
+                <div style={{ height: isMobile ? '45vh' : '60%', flexShrink: 0, paddingTop: isMobile ? '2.75rem' : '4rem', boxSizing: 'border-box' }}>
                     <Canvas
                         shadows
                         camera={{ zoom: 3, position: [0, 10, 0], up: [0, 0, -1], fov: 45 }}
@@ -612,7 +655,7 @@ export const PlayerScene = () => {
 
                 {/* Button fixed at bottom */}
                 <div style={{
-                    padding: isMobile ? '0.75rem 1.25rem 1.5rem' : '0.75rem 1.25rem 1.25rem',
+                    padding: '0.75rem 1.25rem 1.25rem',
                     flexShrink: 0,
                     borderTop: '1px solid rgba(255,255,255,0.1)',
                 }}>
