@@ -237,15 +237,16 @@ const UsersTab = ({ token, currentUserId }: { token: string; currentUserId: stri
             {filtered.map(u => {
                 const uid = String(u.id)
                 const isSelf = uid === currentUserId
+                const DEFAULT_AVATAR = '/images/ava.jpg'
                 return (
                     <div key={uid} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a' }}>
                         <div
-                            onClick={() => navigate(`/users/${u.id}`)}
+                            onClick={() => navigate(`/pages/users/${u.id}`)}
                             style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#222', cursor: 'pointer', flexShrink: 0 }}
                         >
-                            {u.avatar_url && <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />}
+                            <img src={u.avatar_url || DEFAULT_AVATAR} onError={e => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR }} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                         </div>
-                        <div onClick={() => navigate(`/users/${u.id}`)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                        <div onClick={() => navigate(`/pages/users/${u.id}`)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
                             <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {u.name ?? u.email}
                                 {isSelf && <span style={{ color: '#555', fontSize: '0.7rem', marginLeft: '0.5rem' }}>(вы)</span>}
@@ -407,7 +408,7 @@ const VinylsTab = ({ token }: { token: string }) => {
             {filtered.map(v => (
                 <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a' }}>
                     <div
-                        onClick={() => navigate(`/vinyl?vinylId=${v.id}`)}
+                        onClick={() => navigate(`/pages/vinyl?vinylId=${v.id}`)}
                         style={{ width: 36, height: 36, borderRadius: 4, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}
                     >
                         {v.cover
@@ -415,7 +416,7 @@ const VinylsTab = ({ token }: { token: string }) => {
                             : <div style={{ width: '100%', height: '100%', background: v.bg_color ?? '#333' }} />
                         }
                     </div>
-                    <div onClick={() => navigate(`/vinyl?vinylId=${v.id}`)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
+                    <div onClick={() => navigate(`/pages/vinyl?vinylId=${v.id}`)} style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}>
                         <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</div>
                         {v.artist && <div style={{ color: '#555', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.artist}</div>}
                     </div>

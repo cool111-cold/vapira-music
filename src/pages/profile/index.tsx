@@ -144,7 +144,7 @@ const UserRow = ({
 }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a' }}>
         <div onClick={onClick} style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#222', cursor: 'pointer', flexShrink: 0 }}>
-            {user.avatar_url && <img src={user.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+            <img src={user.avatar_url || DEFAULT_AVATAR} onError={e => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR }} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
         <div onClick={onClick} style={{ flex: 1, cursor: 'pointer', minWidth: 0 }}>
             <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -315,7 +315,7 @@ const SubscribersList = ({ token, userId }: { token: string; userId: string }) =
                     style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.6rem 0', borderBottom: '1px solid #1a1a1a', cursor: 'pointer' }}
                 >
                     <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#222', flexShrink: 0 }}>
-                        {u.avatar_url && <img src={u.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                        <img src={u.avatar_url || DEFAULT_AVATAR} onError={e => { (e.target as HTMLImageElement).src = DEFAULT_AVATAR }} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -841,7 +841,7 @@ export const ProfilePage = () => {
             {/* Favourite vinyl — bottom left */}
             {favVinyl && (
                 <div
-                    onClick={() => navigate(`/vinyl?vinylId=${favVinyl.id}`)}
+                    onClick={() => navigate(`/pages/vinyl?vinylId=${favVinyl.id}`)}
                     style={{
                     position: 'absolute',
                     top: '55vh',

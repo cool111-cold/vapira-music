@@ -422,9 +422,10 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
             .finally(() => setTracksLoading(false))
     }, [vinyl.id, token, tracksLoaded])
 
-    const handleToggle = () => {
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation()
         if (!open) loadTracks()
-        setOpen(e => !e)
+        setOpen(v => !v)
     }
 
     const handleDelete = async () => {
@@ -483,7 +484,7 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
             <div style={{ borderBottom: '1px solid #2a2a2a' }}>
             <div
                 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 0', cursor: 'pointer' }}
-                onClick={handleToggle}
+                onClick={() => navigate(`/pages/vinyl?vinylId=${localVinyl.id}`)}
             >
                 {localVinyl.cover
                     ? <img src={`${BASE}${localVinyl.cover}`} alt="" style={{ width: 40, height: 40, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
@@ -493,7 +494,7 @@ export const VinylRow: React.FC<VinylRowProps> = ({ vinyl, token, onDeleted, sho
                     <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localVinyl.name}</div>
                     {localVinyl.artist && <div style={{ color: '#666', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{localVinyl.artist}</div>}
                 </div>
-                <span style={{ color: '#444', flexShrink: 0, display: 'flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                <span onClick={handleToggle} style={{ color: '#444', flexShrink: 0, display: 'flex', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M7 10L12.0008 14.58L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>

@@ -531,6 +531,25 @@ export const VinylPage = () => {
 
     const currentVinyl = vinyls[counter - 1]
 
+    const touchStartX = useRef<number | null>(null);
+    const touchStartY = useRef<number | null>(null);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (openCover || touchStartX.current === null || touchStartY.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX.current;
+        const dy = e.changedTouches[0].clientY - touchStartY.current;
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+        if (dx < 0) setCounter(e => Math.min(vinyls.length, e + 1));
+        else setCounter(e => Math.max(1, e - 1));
+        touchStartX.current = null;
+        touchStartY.current = null;
+    };
+
     if (loading) {
         return (
             <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -551,7 +570,11 @@ export const VinylPage = () => {
     }
 
     return (
-        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <div
+            style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', position: 'relative' }}
+            onTouchStart={isMobile ? handleTouchStart : undefined}
+            onTouchEnd={isMobile ? handleTouchEnd : undefined}
+        >
             <PlayerTwo top />
             <div style={{ flex: 1, position: 'relative', zIndex: 2 }}>
                 <Canvas
@@ -700,10 +723,18 @@ export const VinylPage = () => {
                     transition: isMobile ? 'top ease 0.7s' : 'left ease 0.7s',
                     borderRadius: '.3rem', overflow: 'hidden',
                 }}>
-                    <img
-                        src={currentVinyl.videoCover}
-                        style={{ width: '100%', height: '100%', display: 'block', borderRadius: '.3rem', objectFit: 'cover', animation: glitching && !showCover ? 'glitch-out 0.6s forwards' : 'none' }}
-                    />
+                    {/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(currentVinyl.videoCover) ? (
+                        <video
+                            src={currentVinyl.videoCover}
+                            autoPlay loop muted playsInline
+                            style={{ width: '100%', height: '100%', display: 'block', borderRadius: '.3rem', objectFit: 'cover', animation: glitching && !showCover ? 'glitch-out 0.6s forwards' : 'none' }}
+                        />
+                    ) : (
+                        <img
+                            src={currentVinyl.videoCover}
+                            style={{ width: '100%', height: '100%', display: 'block', borderRadius: '.3rem', objectFit: 'cover', animation: glitching && !showCover ? 'glitch-out 0.6s forwards' : 'none' }}
+                        />
+                    )}
                 </div>
             )}
 
