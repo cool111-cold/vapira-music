@@ -19,6 +19,9 @@ import { ProfilePage } from './pages/profile';
 import { UserProfilePage } from './pages/profile/user-profile';
 import { AdminPage } from './pages/admin';
 
+// games
+import { Crocodile } from './pages/games';
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { token } = useAuth();
     return token ? <>{children}</> : <Navigate to="/pages/login" replace />;
@@ -53,6 +56,9 @@ export default function App() {
               <Route path="/pages/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/pages/users/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
               <Route path="/pages/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+
+              {/* games */}
+              <Route path='/games/crocodile' element={<Crocodile />} />
             </Routes>
           </BrowserRouter>
         </MyProvider>
