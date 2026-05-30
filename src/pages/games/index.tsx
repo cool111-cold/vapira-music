@@ -70,8 +70,8 @@ const SlotMachine = ({ final, pool, accent, icon, label, onDone }: {
     return (
         <div style={{
             borderRadius: 14, padding: '16px 20px', width: '100%', boxSizing: 'border-box' as const,
-            background: done ? accent + '18' : '#0d1b2e',
-            border: `2px solid ${done ? accent : '#1e293b'}`,
+            background: done ? accent + '18' : '#1a1a1a',
+            border: `2px solid ${done ? accent : '#2a2a2a'}`,
             transition: 'background 0.5s, border-color 0.4s',
         }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: accent, textTransform: 'uppercase' as const, letterSpacing: 1.2, marginBottom: 10 }}>
@@ -91,63 +91,63 @@ const SlotMachine = ({ final, pool, accent, icon, label, onDone }: {
 };
 
 const s: Record<string, React.CSSProperties> = {
-    page: { minHeight: '100vh', backgroundColor: '#1a1a2e', color: '#eee', fontFamily: 'sans-serif', padding: '24px', boxSizing: 'border-box' },
-    fullCenter: { minHeight: '100vh', backgroundColor: '#1a1a2e', color: '#eee', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, boxSizing: 'border-box' },
+    page: { minHeight: '100vh', backgroundColor: '#111', color: '#ddd', fontFamily: 'sans-serif', padding: '24px', boxSizing: 'border-box' },
+    fullCenter: { minHeight: '100vh', backgroundColor: '#111', color: '#ddd', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, boxSizing: 'border-box' },
     h1: { margin: '0 0 8px', fontSize: 28, fontWeight: 700, color: '#fff' },
-    sub: { color: '#888', fontSize: 14, margin: '0 0 32px' },
-    joinBox: { background: '#16213e', borderRadius: 16, padding: 32, width: '100%', maxWidth: 400 },
-    input: { width: '100%', padding: '10px 14px', background: '#0f3460', border: '1px solid #374151', borderRadius: 8, color: '#fff', fontSize: 15, boxSizing: 'border-box', marginBottom: 12 },
+    sub: { color: '#666', fontSize: 14, margin: '0 0 32px' },
+    joinBox: { background: '#1a1a1a', borderRadius: 16, padding: 32, width: '100%', maxWidth: 400 },
+    input: { width: '100%', padding: '10px 14px', background: '#222', border: '1px solid #333', borderRadius: 8, color: '#fff', fontSize: 15, boxSizing: 'border-box', marginBottom: 12 },
     btnPrimary: { width: '100%', padding: '12px', background: '#4f46e5', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 15, fontWeight: 600 },
-    btnSecondary: { padding: '8px 20px', background: '#374151', border: 'none', borderRadius: 8, color: '#ddd', cursor: 'pointer', fontSize: 14 },
+    btnSecondary: { padding: '8px 20px', background: '#2a2a2a', border: 'none', borderRadius: 8, color: '#aaa', cursor: 'pointer', fontSize: 14 },
     btnSmall: { padding: '5px 14px', background: '#4f46e5', border: 'none', borderRadius: 6, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
     btnSuccess: { padding: '14px 40px', background: '#059669', border: 'none', borderRadius: 10, color: '#fff', cursor: 'pointer', fontSize: 16, fontWeight: 700 },
     btnDanger: { padding: '14px 40px', background: '#dc2626', border: 'none', borderRadius: 10, color: '#fff', cursor: 'pointer', fontSize: 16, fontWeight: 700 },
     btnBig: { padding: '18px 56px', background: '#059669', border: 'none', borderRadius: 14, color: '#fff', cursor: 'pointer', fontSize: 20, fontWeight: 800 },
     header: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 },
-    roomBadge: { padding: '4px 12px', background: '#0f3460', borderRadius: 20, fontSize: 13, color: '#93c5fd', fontWeight: 600 },
-    idBadge: { padding: '4px 12px', background: '#1e3a5f', borderRadius: 20, fontSize: 13, color: '#a5b4fc' },
+    roomBadge: { padding: '4px 12px', background: '#222', borderRadius: 20, fontSize: 13, color: '#a5b4fc', fontWeight: 600 },
+    idBadge: { padding: '4px 12px', background: '#1e1e1e', borderRadius: 20, fontSize: 13, color: '#777' },
     wsBadge: { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 12, fontSize: 12 },
     grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 },
-    teamCard: { background: '#16213e', borderRadius: 12, padding: '16px 20px', borderLeft: '4px solid' },
+    teamCard: { background: '#1a1a1a', borderRadius: 12, padding: '16px 20px', borderLeft: '4px solid' },
     teamName: { fontWeight: 700, fontSize: 16, marginBottom: 8 },
     playerList: { display: 'flex', flexDirection: 'column', gap: 6 },
     playerRow: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: 'rgba(255,255,255,0.04)', borderRadius: 6, fontSize: 14 },
     dot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
     sectionTitle: { fontSize: 18, fontWeight: 600, color: '#ccc', margin: '0 0 12px' },
-    unassigned: { background: '#16213e', borderRadius: 12, padding: '16px 20px', marginBottom: 32 },
-    statusLine: { fontSize: 13, color: '#6b7280', marginBottom: 24 },
-    noTeams: { color: '#555', fontSize: 14, padding: '12px 0' },
-    bottomBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid #1e293b' },
-    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-    modal: { background: '#16213e', borderRadius: 16, padding: 32, minWidth: 340, maxWidth: 440, width: '100%' },
+    unassigned: { background: '#1a1a1a', borderRadius: 12, padding: '16px 20px', marginBottom: 32 },
+    statusLine: { fontSize: 13, color: '#555', marginBottom: 24 },
+    noTeams: { color: '#444', fontSize: 14, padding: '12px 0' },
+    bottomBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid #252525' },
+    overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
+    modal: { background: '#1a1a1a', borderRadius: 16, padding: 32, minWidth: 340, maxWidth: 440, width: '100%' },
     modalTitle: { margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: '#fff' },
     label: { display: 'block', marginBottom: 14 },
-    labelText: { display: 'block', marginBottom: 6, fontSize: 13, color: '#aaa', fontWeight: 600 },
+    labelText: { display: 'block', marginBottom: 6, fontSize: 13, color: '#888', fontWeight: 600 },
     colorRow: { display: 'flex', gap: 10, flexWrap: 'wrap' as const },
     colorSwatch: { width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', border: '3px solid transparent' },
     modalActions: { display: 'flex', gap: 12, marginTop: 20, justifyContent: 'flex-end' },
     countdownNum: { fontSize: 200, fontWeight: 900, color: '#fff', lineHeight: 1 },
-    countdownSub: { fontSize: 18, color: '#6b7280', marginTop: 8, textAlign: 'center' as const },
+    countdownSub: { fontSize: 18, color: '#555', marginTop: 8, textAlign: 'center' as const },
     wordGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, width: '100%', maxWidth: 640 },
-    wordCard: { background: '#16213e', borderRadius: 16, padding: '28px 20px', cursor: 'pointer', border: '2px solid transparent', textAlign: 'center' as const },
+    wordCard: { background: '#1a1a1a', borderRadius: 16, padding: '28px 20px', cursor: 'pointer', border: '2px solid transparent', textAlign: 'center' as const },
     wordText: { fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 14 },
     diffBadge: { display: 'inline-block', padding: '4px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700, color: '#fff' },
     gameWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, maxWidth: 560, margin: '0 auto', paddingTop: 32 },
     timerCircle: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 120, height: 120, borderRadius: '50%', border: '6px solid', fontSize: 42, fontWeight: 900 },
-    wordBox: { background: '#16213e', borderRadius: 16, padding: '24px 32px', textAlign: 'center' as const, width: '100%' },
+    wordBox: { background: '#1a1a1a', borderRadius: 16, padding: '24px 32px', textAlign: 'center' as const, width: '100%' },
     wordBig: { fontSize: 38, fontWeight: 900, color: '#fff', marginBottom: 10 },
     infoBox: { borderRadius: 12, padding: '14px 18px', width: '100%', borderLeft: '3px solid' },
-    infoLabel: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 5, color: '#9ca3af' },
+    infoLabel: { fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 5, color: '#666' },
     infoText: { fontSize: 16, fontWeight: 600, color: '#fff' },
-    waitBox: { background: '#16213e', borderRadius: 16, padding: '32px 40px', textAlign: 'center' as const, maxWidth: 480 },
-    appealBox: { background: '#16213e', borderRadius: 20, padding: '36px 40px', textAlign: 'center' as const, maxWidth: 480, width: '100%' },
+    waitBox: { background: '#1a1a1a', borderRadius: 16, padding: '32px 40px', textAlign: 'center' as const, maxWidth: 480 },
+    appealBox: { background: '#1a1a1a', borderRadius: 20, padding: '36px 40px', textAlign: 'center' as const, maxWidth: 480, width: '100%' },
     earnedPts: { fontSize: 56, fontWeight: 900, color: '#fbbf24', lineHeight: 1, marginBottom: 4 },
     scoreBar: { display: 'flex', gap: 10, flexWrap: 'wrap' as const, justifyContent: 'center' },
-    scoreCard: { background: '#16213e', borderRadius: 10, padding: '8px 18px', textAlign: 'center' as const, minWidth: 90, borderLeft: '3px solid' },
-    scoreName: { fontSize: 12, color: '#888', marginBottom: 2 },
+    scoreCard: { background: '#1a1a1a', borderRadius: 10, padding: '8px 18px', textAlign: 'center' as const, minWidth: 90, borderLeft: '3px solid' },
+    scoreName: { fontSize: 12, color: '#666', marginBottom: 2 },
     scoreVal: { fontSize: 22, fontWeight: 900 },
     winBox: { borderRadius: 20, padding: '32px 48px', textAlign: 'center' as const, marginBottom: 24 },
-    lbWrap: { background: '#16213e', borderRadius: 14, padding: 20, width: '100%', maxWidth: 500 },
+    lbWrap: { background: '#1a1a1a', borderRadius: 14, padding: 20, width: '100%', maxWidth: 500 },
     lbRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, marginBottom: 6 },
 };
 
@@ -169,29 +169,36 @@ const Header = ({ room, myId, isMain, wsOn, mode }: { room: string; myId: number
     };
 
     return (
-        <div style={s.header}>
-            <span style={{ fontSize: 20, fontWeight: 700, color: '#fff' }}>Crocodile +</span>
-            <span
-                style={{ ...s.roomBadge, cursor: 'pointer', userSelect: 'none', transition: 'background 0.2s', background: copied ? '#064e3b' : '#0f3460', color: copied ? '#6ee7b7' : '#93c5fd' }}
-                onClick={copyCode}
-                title="Скопировать код"
-            >
-                {copied ? '✓ скопировано' : <>#{room}<CopyIcon /></>}
-            </span>
-            <span style={s.idBadge}>ID {myId}</span>
-            {isMain && <span style={{ ...s.idBadge, background: '#3b1f6e', color: '#c4b5fd' }}>хост</span>}
-            <span style={{ ...s.idBadge, background: mode === 'remote' ? '#0f3a2e' : '#1a2f4e', color: mode === 'remote' ? '#6ee7b7' : '#93c5fd' }}>
-                {MODE_ICON[mode]} {MODE_LABEL[mode]}
-            </span>
-            <span style={{
-                ...s.wsBadge,
-                marginLeft: 'auto',
-                background: wsOn ? '#064e3b' : '#450a0a',
-                color: wsOn ? '#6ee7b7' : '#fca5a5',
-            }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: wsOn ? '#10b981' : '#ef4444', display: 'inline-block' }} />
-                {wsOn ? 'подключён' : 'отключён'}
-            </span>
+        <div style={{ marginBottom: 24 }}>
+            {/* строка 1: название + код + ws */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>Crocodile +</span>
+                <span
+                    style={{ ...s.roomBadge, cursor: 'pointer', userSelect: 'none', transition: 'background 0.2s', background: copied ? '#0d2b1f' : '#222', color: copied ? '#6ee7b7' : '#a5b4fc', whiteSpace: 'nowrap' }}
+                    onClick={copyCode}
+                    title="Скопировать код"
+                >
+                    {copied ? '✓ скопировано' : <>#{room}<CopyIcon /></>}
+                </span>
+                <span style={{
+                    ...s.wsBadge,
+                    marginLeft: 'auto',
+                    background: wsOn ? '#064e3b' : '#450a0a',
+                    color: wsOn ? '#6ee7b7' : '#fca5a5',
+                    whiteSpace: 'nowrap',
+                }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: wsOn ? '#10b981' : '#ef4444', display: 'inline-block', flexShrink: 0 }} />
+                    {wsOn ? 'online' : 'offline'}
+                </span>
+            </div>
+            {/* строка 2: мета-бейджи */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={s.idBadge}>ID {myId}</span>
+                {isMain && <span style={{ ...s.idBadge, background: '#1e1428', color: '#c4b5fd' }}>хост</span>}
+                <span style={{ ...s.idBadge, background: mode === 'remote' ? '#0d2018' : '#1e1e1e', color: mode === 'remote' ? '#6ee7b7' : '#93c5fd' }}>
+                    {MODE_ICON[mode]} {MODE_LABEL[mode]}
+                </span>
+            </div>
         </div>
     );
 };
@@ -461,9 +468,9 @@ export const Crocodile = () => {
                             {(['room', 'remote'] as GameMode[]).map(m => (
                                 <button key={m} onClick={() => setSelectedMode(m)} style={{
                                     flex: 1, padding: '10px 8px', border: '2px solid',
-                                    borderColor: selectedMode === m ? '#4f46e5' : '#374151',
-                                    borderRadius: 8, background: selectedMode === m ? '#2d2a6e' : '#0f3460',
-                                    color: selectedMode === m ? '#a5b4fc' : '#9ca3af',
+                                    borderColor: selectedMode === m ? '#4f46e5' : '#333',
+                                    borderRadius: 8, background: selectedMode === m ? '#1e1b3a' : '#222',
+                                    color: selectedMode === m ? '#a5b4fc' : '#777',
                                     cursor: 'pointer', fontSize: 14, fontWeight: 600,
                                     transition: 'all 0.15s',
                                 }}>
@@ -670,7 +677,7 @@ export const Crocodile = () => {
         const medals = ['🥇', '🥈', '🥉'];
         return (
             <div style={s.fullCenter}>
-                <div style={{ ...s.winBox, background: '#16213e', borderTop: `4px solid ${w.color}` }}>
+                <div style={{ ...s.winBox, background: '#1a1a1a', borderTop: `4px solid ${w.color}` }}>
                     <div style={{ fontSize: 14, color: '#888', marginBottom: 8 }}>Победитель</div>
                     <div style={{ fontSize: 36, fontWeight: 900, color: w.color }}>{w.name}</div>
                 </div>
@@ -681,7 +688,7 @@ export const Crocodile = () => {
                         return (
                             <div key={p.id} style={{
                                 ...s.lbRow,
-                                background: p.id === myId ? 'rgba(79,70,229,0.25)' : 'rgba(255,255,255,0.03)',
+                                background: p.id === myId ? 'rgba(79,70,229,0.2)' : 'rgba(255,255,255,0.03)',
                             }}>
                                 <span style={{ fontSize: 22, width: 32, textAlign: 'center' as const }}>
                                     {medals[i] ?? `${i + 1}`}
@@ -760,7 +767,7 @@ export const Crocodile = () => {
                                         }
                                     </div>
                                     {!inThisTeam && (
-                                        <button style={{ ...s.btnSmall, marginTop: 12, background: '#1e3a5f' }}
+                                        <button style={{ ...s.btnSmall, marginTop: 12, background: '#2a2a2a' }}
                                             onClick={() => { setNameForTeam(team.id); setNameValue(myPlayer?.name || nameInput); setNameModal(true); }}>
                                             Войти
                                         </button>
