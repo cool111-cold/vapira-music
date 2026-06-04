@@ -70,6 +70,8 @@ const LINE_H = 48;
 
 const FEED_LIMIT = 10;
 
+let _vinylTracksLoadedId: number | null = null;
+
 type FeedMode = 'all' | 'discover' | 'my' | 'uploaded' | 'saved';
 
 const FEED_LABELS: Record<FeedMode, string> = {
@@ -150,6 +152,7 @@ export const PlayerScene = () => {
         loadAndPlayExternal,
         loadQueueAndPlay,
         appendToQueue,
+        selectedVinylId,
     } = useAudioPlayer();
     const { savedIds, toggleSaved } = useSaved();
     const [searchParams] = useSearchParams();
@@ -160,6 +163,9 @@ export const PlayerScene = () => {
     const feedHasMoreRef = useRef(true);
     const feedLoadingRef = useRef(false);
     const sharedTrackHandledRef = useRef(false);
+
+    const [vinylTab, setVinylTab] = useState<{ id: number; name: string; videoCover: string | null } | null>(null);
+    const [vinylTabActive, setVinylTabActive] = useState(false);
 
     const [showLyrics, setShowLyrics] = useState(false);
     const [showVolume, setShowVolume] = useState(false);
@@ -237,11 +243,69 @@ export const PlayerScene = () => {
         }
     }, [trackIndex, audioTracks.length, feedMode]);
 
+    const loadVinylTracks = useCallback(async (vinylId: number) => {
+        if (feedLoadingRef.current) return;
+        feedLoadingRef.current = true;
+        setFeedLoading(true);
+        try {
+            const listRes = await fetch(`${BASE_URL}/vinyl/${vinylId}/tracks`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const list: Array<{ id: number }> = await listRes.json();
+            if (!Array.isArray(list) || list.length === 0) return;
+            const detailed = await Promise.all(
+                list.map(t =>
+                    fetch(`${BASE_URL}/tracks/${t.id}`, { headers: { Authorization: `Bearer ${token}` } })
+                        .then(r => r.json()),
+                ),
+            );
+            const tracks = detailed
+                .filter(t => t?.stream_url)
+                .map(t => ({
+                    id: String(t.id),
+                    name: t.title,
+                    artist: t.artist,
+                    cover: t.avatar_url ?? undefined,
+                    src: `${BASE_URL}${t.stream_url}`,
+                }));
+            if (tracks.length > 0) loadQueueAndPlay(tracks);
+        } catch {} finally {
+            feedLoadingRef.current = false;
+            setFeedLoading(false);
+        }
+    }, [token, loadQueueAndPlay]);
+
+    useEffect(() => {
+        if (!selectedVinylId || !token) return;
+        const isNew = _vinylTracksLoadedId !== selectedVinylId;
+        fetch(`${BASE_URL}/vinyl/${selectedVinylId}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then((v: any) => {
+                const toUrl = (p: string | null) => p ? `${BASE_URL}${p}` : null;
+                setVinylTab({ id: selectedVinylId, name: v.name, videoCover: toUrl(v.video_cover) });
+                if (isNew && !searchParams.get('trackId')) {
+                    _vinylTracksLoadedId = selectedVinylId;
+                    setVinylTabActive(true);
+                    setFeedMode(null);
+                    loadVinylTracks(selectedVinylId);
+                }
+            })
+            .catch(() => {});
+    }, [selectedVinylId, token, loadVinylTracks, searchParams]);
+
     const handleFeedSelect = (mode: FeedMode) => {
+        setVinylTabActive(false);
         setFeedMode(mode);
         feedSkipRef.current = 0;
         feedHasMoreRef.current = true;
         loadMoreFeed(mode, 0);
+    };
+
+    const handleVinylTabSelect = () => {
+        if (!vinylTab) return;
+        setFeedMode(null);
+        setVinylTabActive(true);
+        loadVinylTracks(vinylTab.id);
     };
 
     // Shared track via URL
@@ -262,7 +326,7 @@ export const PlayerScene = () => {
                 });
             })
             .catch(() => {});
-    }, [token, searchParams, loadAndPlayExternal]);
+    }, [token, searchParams]);
 
     // Wheel (debounced)
     const lastWheelRef = useRef(0);
@@ -285,11 +349,21 @@ export const PlayerScene = () => {
         else if (delta < -60) goPrev();
     }, [goNext, goPrev]);
 
+    const [muteValue, setMuteValue] = useState(1);
+    const muteValueRef = useRef(muteValue);
+    muteValueRef.current = muteValue;
+    const volumeValRef = useRef(volume);
+    volumeValRef.current = volume;
+
     // Keyboard
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'ArrowDown' || e.key === 'j') goNext();
-            else if (e.key === 'ArrowUp' || e.key === 'k') goPrev();
+            if (e.key === 'ArrowDown' || e.key === 'w') goNext();
+            else if (e.key === 'ArrowUp' || e.key === 's') goPrev();
+            else if (e.key === 'ArrowLeft' || e.key === 'a') setVolume(Math.round((volumeValRef.current - 0.1) * 10) / 10);
+            else if (e.key === 'ArrowRight' || e.key === 'd') setVolume(Math.round((volumeValRef.current + 0.1) * 10) / 10);
+            else if (e.key === 'm' && muteValueRef.current !== 0) { setMuteValue(volumeValRef.current); setVolume(0); }
+            else if (e.key === 'm' && muteValueRef.current === 0) { setVolume(muteValueRef.current); }
             else if (e.key === ' ') { e.preventDefault(); toggle(); }
         };
         window.addEventListener('keydown', onKey);
@@ -336,8 +410,40 @@ export const PlayerScene = () => {
                 backgroundColor: '#0a0a0a',
                 filter: 'blur(48px) brightness(0.28) saturate(2)',
                 transform: 'scale(1.15)',
-                transition: 'background-image 0.7s ease',
+                transition: 'background-image 0.7s ease, opacity 0.7s ease',
+                opacity: vinylTabActive && vinylTab?.videoCover ? 0 : 1,
             }} />
+
+            {/* Vinyl video_cover background */}
+            {vinylTab?.videoCover && (
+                <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 0,
+                    overflow: 'hidden',
+                    opacity: vinylTabActive ? 1 : 0,
+                    transition: 'opacity 0.7s ease',
+                    transform: 'scale(1.15)',
+                    filter: 'blur(48px) brightness(0.28) saturate(2)',
+                }}>
+                    {/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(vinylTab.videoCover) ? (
+                        <video
+                            key={vinylTab.videoCover}
+                            src={vinylTab.videoCover}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    ) : (
+                        <img
+                            src={vinylTab.videoCover}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    )}
+                </div>
+            )}
 
             {/* Gradient overlay */}
             <div style={{
@@ -385,6 +491,28 @@ export const PlayerScene = () => {
                             {feedMode === mode && feedLoading ? '...' : FEED_LABELS[mode]}
                         </button>
                     ))}
+                    {vinylTab && (
+                        <button
+                            onClick={handleVinylTabSelect}
+                            style={{
+                                background: vinylTabActive ? 'rgba(255,255,255,0.18)' : 'transparent',
+                                border: `1px solid ${vinylTabActive ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.14)'}`,
+                                color: vinylTabActive ? '#fff' : 'rgba(255,255,255,0.42)',
+                                padding: '0.28rem 0.75rem',
+                                borderRadius: '2rem',
+                                cursor: 'pointer',
+                                fontSize: '0.6rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                transition: 'all 0.2s ease',
+                                backdropFilter: 'blur(6px)',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {vinylTabActive && feedLoading ? '...' : vinylTab.name}
+                        </button>
+                    )}
                 </div>
 
                 {/* Nav icons */}

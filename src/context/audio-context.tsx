@@ -65,6 +65,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const isInitializedRef = useRef(false);
     const pendingPlayIdRef = useRef<string | null>(null);
     const pendingQueuePlayRef = useRef(false);
+    const playingTrackIdRef = useRef<string | null>(null);
 
     // loadTrackRef always holds the latest version of loadTrack so Howl's
     // onend callback never closes over a stale copy.
@@ -91,6 +92,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         const track = tracksRef.current[index];
         if (!track) return;
+        if (autoplay) playingTrackIdRef.current = track.id;
 
         howlRef.current = new Howl({
             src: [track.src],
@@ -187,7 +189,18 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             isInitializedRef.current = true;
             return;
         }
-        if (isInitializedRef.current) return;
+        if (isInitializedRef.current) {
+            // Tracks array was replaced/extended (e.g. saved tracks loaded after a share link).
+            // Keep trackIndex pointing to whatever track is actually playing.
+            if (playingTrackIdRef.current) {
+                const newIdx = tracks.findIndex(t => t.id === playingTrackIdRef.current);
+                if (newIdx >= 0 && newIdx !== trackIndexRef.current) {
+                    setTrackIndex(newIdx);
+                    trackIndexRef.current = newIdx;
+                }
+            }
+            return;
+        }
         isInitializedRef.current = true;
         loadTrackRef.current(0, false);
         // eslint-disable-next-line react-hooks/exhaustive-deps
