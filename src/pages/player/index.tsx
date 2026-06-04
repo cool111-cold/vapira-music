@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/auth-context';
 import { useAudioPlayer } from '../../context/audio-context';
@@ -6,6 +6,68 @@ import { useSaved } from '../../context/saved-context';
 import { Icon } from '../../components/icon';
 
 const BASE_URL = 'https://vapira.ru';
+
+const LYRICS_LRC = `[00:49.94]Whip it like a Nascar, I can see the time pass
+[00:53.10]Feel like I'm in high school, fuckin' me in gym class
+[00:56.30]Shawty, I remember that
+[00:57.86]I know you remember that
+[00:59.45]You was fuckin' with me way before I even wrote raps
+[01:02.72]Now I'm seein' cash flow
+[01:04.26]I could be a asshole
+[01:05.81]Yeah, I know
+[01:06.59]But it's all good cause I let her spend my money, though
+[01:09.70]Playboy bunny, though, shawty look like a pornstar
+[01:13.14]I know she love me 'cause she fuck me in her sports car
+[01:16.30]I pull up on her, tell her that we finna go far
+[01:19.68]Drop top, smokin' thrax, lookin' at the stars
+[01:22.83]Gettin' high, taking bars till we on Mars
+[01:26.03]I could make the ground move like I'm Avatar
+[01:29.17]Now I'm faded on my own in my bedroom
+[01:32.37]Now I'm lookin' at my phone should I text you?
+[01:35.37]I just wanna sex you, I just wanna bless you
+[01:38.35]Baby, I'm a priest in the underworld, guess who
+[01:41.60]Lil' Bo Peep with a brand new flow too
+[01:44.72]Lookin' at my teeth like you never seen a gold tooth
+[01:47.91]Never in the streets 'cause I never leave my home
+[01:50.81]If you wanna live a dream, I ain't coming, bitch, I told you
+[02:06.31]Whip it like a Nascar, I can see the time pass
+[02:09.41]Feel like I'm in high school, fuckin' me in gym class
+[02:12.52]Shawty, I remember that
+[02:14.16]I know you remember that
+[02:15.76]You was fuckin' with me way before I even wrote raps
+[02:19.04]Now I'm seein' cash flow
+[02:20.52]I could be a asshole
+[02:22.10]Yeah, I know
+[02:22.90]But it's all good cause I let her spend my money, though
+[02:26.08]Playboy bunny, though, shawty look like a pornstar
+[02:29.43]I know she love me 'cause she fuck me in her sports car
+[02:32.57]I pull up on her, tell her that we finna go far
+[02:35.94]Drop top, smokin' thrax, lookin' at the stars
+[02:39.13]Gettin' high, taking bars till we on Mars
+[02:42.29]I could make the ground move like I'm Avatar
+[02:45.47]Now I'm faded on my own in my bedroom
+[02:48.64]Now I'm lookin' at my phone should I text you?
+[02:51.47]I just wanna sex you, I just wanna bless you
+[02:54.66]Baby, I'm a priest in the underworld, guess who
+[02:57.89]Lil' Bo Peep with a brand new flow too
+[03:01.01]Lookin' at my teeth like you never seen a gold tooth
+[03:04.27]Never in the streets 'cause I never leave my home
+[03:07.11]If you wanna live a dream, I ain't coming, bitch, I-`;
+
+const parseLrc = (lrc: string): { time: number; text: string }[] =>
+    lrc.trim().split('\n')
+        .map(line => {
+            const m = line.match(/^\[(\d+):(\d+\.\d+)\](.*)/);
+            if (!m) return null;
+            const text = m[3].trim();
+            if (!text) return null;
+            return { time: parseInt(m[1]) * 60 + parseFloat(m[2]), text };
+        })
+        .filter((x): x is { time: number; text: string } => x !== null);
+
+const LYRICS = parseLrc(LYRICS_LRC);
+const LINE_H = 48;
+
 const FEED_LIMIT = 10;
 
 type FeedMode = 'all' | 'discover' | 'my' | 'uploaded' | 'saved';
@@ -99,6 +161,7 @@ export const PlayerScene = () => {
     const feedLoadingRef = useRef(false);
     const sharedTrackHandledRef = useRef(false);
 
+    const [showLyrics, setShowLyrics] = useState(false);
     const [showVolume, setShowVolume] = useState(false);
     const volumeRef = useRef<HTMLDivElement>(null);
 
@@ -237,6 +300,16 @@ export const PlayerScene = () => {
     const currentSec = (currentTime / 100) * durationSec;
     const isLiked = currentTrack ? savedIds.has(currentTrack.id) : false;
 
+    const activeLyricIndex = useMemo(() => {
+        if (!showLyrics || LYRICS.length === 0) return -1;
+        let idx = -1;
+        for (let i = 0; i < LYRICS.length; i++) {
+            if (LYRICS[i].time <= currentSec) idx = i;
+            else break;
+        }
+        return idx;
+    }, [showLyrics, currentSec]);
+
     return (
         <div
             style={{
@@ -323,77 +396,125 @@ export const PlayerScene = () => {
             </div>
 
 
-            {/* Center spinning vinyl */}
+            {/* Center spinning vinyl + lyrics */}
             <div style={{
                 position: 'absolute',
                 top: '4.5rem',
                 bottom: '7rem',
                 left: 0,
-                right: 0,
+                right: showLyrics ? '5.75rem' : 0,
                 zIndex: 2,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: showLyrics ? 'flex-start' : 'center',
+                paddingLeft: showLyrics ? '24rem' : '0',
+                gap: showLyrics ? '1.5rem' : '0',
                 opacity: cardVisible ? 1 : 0,
                 transform: cardVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.94)',
                 transition: 'opacity 0.21s ease, transform 0.21s ease',
                 pointerEvents: 'none',
             }}>
                 {currentTrack ? (
-                    <div style={{
-                        position: 'relative',
-                        width: 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
-                        height: 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
-                        flexShrink: 0,
-                    }}>
+                    <>
                         <div style={{
-                            position: 'absolute',
-                            inset: 0,
-                            borderRadius: '50%',
-                            background: `
-                                radial-gradient(circle at center, transparent 29%, rgba(255,255,255,0.035) 29.5%,
-                                rgba(255,255,255,0.035) 31%, transparent 31.5%,
-                                transparent 37%, rgba(255,255,255,0.035) 37.5%,
-                                rgba(255,255,255,0.035) 39%, transparent 39.5%),
-                                #111
-                            `,
-                            boxShadow: '0 30px 90px rgba(0,0,0,0.75), 0 0 0 3px rgba(255,255,255,0.05)',
-                            animation: isPlaying
-                                ? 'spinRecord 9s linear infinite'
-                                : 'spinRecord 9s linear infinite paused',
+                            position: 'relative',
+                            width: showLyrics ? 'clamp(120px, 32vw, 200px)' : 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
+                            height: showLyrics ? 'clamp(120px, 32vw, 200px)' : 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
+                            flexShrink: 0,
+                            transition: 'width 0.35s ease, height 0.35s ease',
                         }}>
                             <div style={{
                                 position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                width: '65%',
-                                height: '65%',
+                                inset: 0,
                                 borderRadius: '50%',
-                                overflow: 'hidden',
-                                background: cover ? undefined : '#1a1a1a',
+                                background: `
+                                    radial-gradient(circle at center, transparent 29%, rgba(255,255,255,0.035) 29.5%,
+                                    rgba(255,255,255,0.035) 31%, transparent 31.5%,
+                                    transparent 37%, rgba(255,255,255,0.035) 37.5%,
+                                    rgba(255,255,255,0.035) 39%, transparent 39.5%),
+                                    #111
+                                `,
+                                boxShadow: '0 30px 90px rgba(0,0,0,0.75), 0 0 0 3px rgba(255,255,255,0.05)',
+                                animation: isPlaying
+                                    ? 'spinRecord 9s linear infinite'
+                                    : 'spinRecord 9s linear infinite paused',
                             }}>
-                                {cover && (
-                                    <img
-                                        src={cover}
-                                        alt={currentTrack.name}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
-                                )}
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '65%',
+                                    height: '65%',
+                                    borderRadius: '50%',
+                                    overflow: 'hidden',
+                                    background: cover ? undefined : '#1a1a1a',
+                                }}>
+                                    {cover && (
+                                        <img
+                                            src={cover}
+                                            alt={currentTrack.name}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    )}
+                                </div>
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '8%',
+                                    height: '8%',
+                                    borderRadius: '50%',
+                                    background: '#000',
+                                    zIndex: 1,
+                                }} />
                             </div>
-                            <div style={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                width: '8%',
-                                height: '8%',
-                                borderRadius: '50%',
-                                background: '#000',
-                                zIndex: 1,
-                            }} />
                         </div>
-                    </div>
+
+                        {showLyrics && (
+                            <div style={{
+                                flex: 1,
+                                overflow: 'hidden',
+                                height: `${LINE_H * 7}px`,
+                                alignSelf: 'center',
+                                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 28%, black 72%, transparent 100%)',
+                                maskImage: 'linear-gradient(to bottom, transparent 0%, black 28%, black 72%, transparent 100%)',
+                            }}>
+                                <div style={{
+                                    transform: `translateY(${(3 - Math.max(0, activeLyricIndex)) * LINE_H}px)`,
+                                    transition: 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                                }}>
+                                    {LYRICS.map((line, idx) => {
+                                        const dist = activeLyricIndex >= 0
+                                            ? Math.abs(idx - activeLyricIndex)
+                                            : idx + 2;
+                                        return (
+                                            <div key={idx} style={{
+                                                height: `${LINE_H}px`,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                color: dist === 0 ? '#fff'
+                                                    : dist === 1 ? 'rgba(255,255,255,0.52)'
+                                                    : dist === 2 ? 'rgba(255,255,255,0.28)'
+                                                    : dist === 3 ? 'rgba(255,255,255,0.12)'
+                                                    : 'rgba(255,255,255,0.05)',
+                                                fontSize: dist === 0 ? '1.1rem' : '0.85rem',
+                                                fontWeight: dist === 0 ? 700 : 400,
+                                                textShadow: dist === 0 ? '0 2px 12px rgba(0,0,0,0.9)' : 'none',
+                                                transition: 'color 0.3s ease, font-size 0.3s ease',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                            }}>
+                                                {line.text}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : !feedLoading && (
                     <p style={{
                         color: 'rgba(255,255,255,0.18)',
@@ -420,19 +541,39 @@ export const PlayerScene = () => {
             }}>
                 {currentTrack && (
                     <>
-                        <p style={{
-                            color: '#fff',
-                            margin: 0,
-                            fontSize: 'clamp(1.05rem, 5vw, 1.45rem)',
-                            fontWeight: 800,
-                            lineHeight: 1.2,
-                            textShadow: '0 2px 14px rgba(0,0,0,0.7)',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}>
-                            {currentTrack.name}
-                        </p>
+                        <div style={{gap: 12, display: 'flex', flexDirection: 'row'}}>
+                            <p style={{
+                                color: '#fff',
+                                margin: 0,
+                                fontSize: 'clamp(1.05rem, 5vw, 1.45rem)',
+                                fontWeight: 800,
+                                lineHeight: 1.2,
+                                textShadow: '0 2px 14px rgba(0,0,0,0.7)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                            }}>
+                                {currentTrack.name}
+                            </p>
+                            <button
+                                onClick={() => setShowLyrics(v => !v)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: showLyrics ? 1 : 0.5,
+                                    transition: 'opacity 0.2s',
+                                }}
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10.2088 16.1999H12.124M12.124 16.1999H14.128M12.124 16.1999V7.7999M12.124 7.7999H8.9999C8.66853 7.7999 8.3999 8.06853 8.3999 8.3999V9.28225M12.124 7.7999H14.9999C15.3313 7.7999 15.5999 8.06853 15.5999 8.3999V9.52931M4.7999 21.5999H19.1999C20.5254 21.5999 21.5999 20.5254 21.5999 19.1999V4.7999C21.5999 3.47442 20.5254 2.3999 19.1999 2.3999H4.7999C3.47442 2.3999 2.3999 3.47442 2.3999 4.7999V19.1999C2.3999 20.5254 3.47442 21.5999 4.7999 21.5999Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
                         <p style={{
                             color: 'rgba(255,255,255,0.58)',
                             margin: '0.3rem 0 0',
