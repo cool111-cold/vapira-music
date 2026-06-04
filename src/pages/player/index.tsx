@@ -54,6 +54,44 @@ const LYRICS_LRC = `[00:49.94]Whip it like a Nascar, I can see the time pass
 [03:04.27]Never in the streets 'cause I never leave my home
 [03:07.11]If you wanna live a dream, I ain't coming, bitch, I-`;
 
+const TEST_FEED = [
+    {
+        type: 'text',
+        track_id: 11,
+        autor_id: 1,
+        vinyl_id: null,
+        image: null,
+        video: null,
+        text: 'test text for test feed, this is text feed, uraaa'
+    },
+    {
+        type: 'image',
+        track_id: 23,
+        autor_id: 4,
+        vinyl_id: null,
+        image: 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg',
+        video: null,
+        text: 'test text for test feed, this is image and text feed, uraaa'
+    },
+    {
+        type: 'video',
+        track_id: 24,
+        autor_id: 1,
+        image: null,
+        vinyl_id: null,
+        video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
+        text: 'test text for test feed, this is video and text feed, uraaa'
+    },
+    {
+        type: 'image',
+        track_id: 25,
+        autor_id: 4,
+        image: ['https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg'],
+        video: null,
+        text: 'test text for test feed, this is more images and text feed, uraaa'
+    }
+]
+
 const parseLrc = (lrc: string): { time: number; text: string }[] =>
     lrc.trim().split('\n')
         .map(line => {
@@ -72,7 +110,7 @@ const FEED_LIMIT = 10;
 
 let _vinylTracksLoadedId: number | null = null;
 
-type FeedMode = 'all' | 'discover' | 'my' | 'uploaded' | 'saved';
+type FeedMode = 'all' | 'discover' | 'my' | 'uploaded' | 'saved' | 'feed';
 
 const FEED_LABELS: Record<FeedMode, string> = {
     all: 'Все',
@@ -80,9 +118,10 @@ const FEED_LABELS: Record<FeedMode, string> = {
     my: 'Мои',
     uploaded: 'Загруженные',
     saved: 'Сохранённые',
+    feed: 'Лента'
 };
 
-const FEED_MODES: FeedMode[] = ['discover', 'all', 'my', 'uploaded', 'saved'];
+const FEED_MODES: FeedMode[] = ['feed', 'discover', 'all', 'my', 'uploaded', 'saved'];
 
 const formatTime = (sec: number) => {
     const m = Math.floor(sec / 60);
@@ -134,6 +173,113 @@ const NavBtn = ({ path, children }: { path: string; children: React.ReactNode })
     );
 };
 
+interface FeedAuthor {
+    id: number;
+    name?: string;
+    email?: string;
+    avatar_url?: string;
+}
+
+interface FeedItem {
+    type: string;
+    track_id: number;
+    autor_id: number;
+    vinyl_id?: number | null;
+    image: string | string[] | null;
+    video: string | null;
+    text: string;
+}
+
+const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null }) => {
+    const isMultiImage = Array.isArray(item.image);
+    const isSingleImage = typeof item.image === 'string' && !!item.image;
+    const isVideoFile = !!item.video && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(item.video);
+    const isGif = !!item.video && !isVideoFile;
+    const navigate = useNavigate();
+    const DEFAULT_AVATAR = '/images/ava.jpg'
+
+    return (
+        <div style={{
+            width: 'min(400px, 88vw)',
+            minHeight: item.type === 'text' ? 200 : undefined,
+            maxHeight: 'calc(100vh - 18rem)',
+            borderRadius: 20,
+            overflow: 'hidden',
+            background: 'rgba(12,12,12,0.88)',
+            backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(255,255,255,0.09)',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+        }}>
+            {/* Author header */}
+            <div onClick={() => navigate(`/pages/users/${author?.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
+                <div style={{
+                    width: 32, height: 32, borderRadius: '50%',
+                    overflow: 'hidden', background: '#1f1f1f', flexShrink: 0,
+                }}>
+                    {author?.avatar_url ? (
+                        <img
+                            src={author.avatar_url.startsWith('http') ? author.avatar_url : `${BASE_URL}${author.avatar_url}`}
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    ) : 
+                    <img
+                        src={DEFAULT_AVATAR}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />}
+                </div>
+                <span style={{ color: '#fff', fontSize: '0.82rem', fontWeight: 600 }}>
+                    {author?.name ?? author?.email ?? '—'}
+                </span>
+            </div>
+
+            {/* Multiple images */}
+            {isMultiImage && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${Math.min((item.image as string[]).length, 3)}, 1fr)`,
+                    gap: 2,
+                }}>
+                    {(item.image as string[]).map((img, i) => (
+                        <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                    ))}
+                </div>
+            )}
+
+            {/* Single image */}
+            {isSingleImage && (
+                <img src={item.image as string} alt="" style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block' }} />
+            )}
+
+            {/* Video */}
+            {isVideoFile && (
+                <video src={item.video!} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block' }} />
+            )}
+
+            {/* GIF / animated image */}
+            {isGif && (
+                <img src={item.video!} alt="" style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block' }} />
+            )}
+
+            {/* Text */}
+            {item.text && (
+                <div style={{
+                    padding: item.type === 'text' ? '24px 20px' : '12px 16px',
+                    color: 'rgba(255,255,255,0.87)',
+                    fontSize: item.type === 'text' ? '1.05rem' : '0.875rem',
+                    lineHeight: 1.65,
+                    textAlign: item.type === 'text' ? 'center' : undefined,
+                }}>
+                    {item.text}
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const PlayerScene = () => {
     const { token } = useAuth();
     const {
@@ -163,6 +309,9 @@ export const PlayerScene = () => {
     const feedHasMoreRef = useRef(true);
     const feedLoadingRef = useRef(false);
     const sharedTrackHandledRef = useRef(false);
+
+    const [feedItemIndex, setFeedItemIndex] = useState(0);
+    const [feedAuthor, setFeedAuthor] = useState<FeedAuthor | null>(null);
 
     const [vinylTab, setVinylTab] = useState<{ id: number; name: string; videoCover: string | null } | null>(null);
     const [vinylTabActive, setVinylTabActive] = useState(false);
@@ -198,14 +347,33 @@ export const PlayerScene = () => {
         }, 210);
     }, []);
 
-    const goNext = useCallback(() => animate(next), [animate, next]);
+    // Refs for feed state — used inside callbacks to avoid stale closures
+    const feedModeRef = useRef<FeedMode | null>(feedMode);
+    feedModeRef.current = feedMode;
+    const feedItemIndexRef = useRef(feedItemIndex);
+    feedItemIndexRef.current = feedItemIndex;
+
+    const goNext = useCallback(() => {
+        if (feedModeRef.current === 'feed') {
+            animate(() => setFeedItemIndex(i => Math.min(i + 1, TEST_FEED.length - 1)));
+        } else {
+            animate(next);
+        }
+    }, [animate, next]);
+
     const goPrev = useCallback(() => {
-        if (trackIndex === 0) return;
-        animate(prev);
+        if (feedModeRef.current === 'feed') {
+            if (feedItemIndexRef.current === 0) return;
+            animate(() => setFeedItemIndex(i => Math.max(i - 1, 0)));
+        } else {
+            if (trackIndex === 0) return;
+            animate(prev);
+        }
     }, [animate, prev, trackIndex]);
 
     // Load feed
     const loadMoreFeed = useCallback(async (mode: FeedMode, skip: number) => {
+        if (mode === 'feed') return;
         if (feedLoadingRef.current) return;
         feedLoadingRef.current = true;
         if (skip === 0) setFeedLoading(true);
@@ -237,11 +405,42 @@ export const PlayerScene = () => {
     loadMoreFeedRef.current = loadMoreFeed;
 
     useEffect(() => {
-        if (!feedMode || !feedHasMoreRef.current) return;
+        if (!feedMode || feedMode === 'feed' || !feedHasMoreRef.current) return;
         if (audioTracks.length > 0 && trackIndex >= audioTracks.length - 5) {
             loadMoreFeedRef.current(feedMode, feedSkipRef.current);
         }
     }, [trackIndex, audioTracks.length, feedMode]);
+
+    // Load track for current feed item (only when track_id changes)
+    const currentFeedTrackId = feedMode === 'feed' ? (TEST_FEED[feedItemIndex]?.track_id ?? null) : null;
+
+    useEffect(() => {
+        if (!currentFeedTrackId || !token) return;
+        fetch(`${BASE_URL}/tracks/${currentFeedTrackId}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.json())
+            .then((t: any) => {
+                if (!t?.id) return;
+                loadAndPlayExternal({
+                    id: String(t.id),
+                    name: t.title,
+                    artist: t.artist,
+                    cover: t.avatar_url ?? undefined,
+                    src: `${BASE_URL}${t.stream_url}`,
+                });
+            })
+            .catch(() => {});
+    }, [currentFeedTrackId, token]);
+
+    // Load author for current feed item
+    const currentAutorId = feedMode === 'feed' ? (TEST_FEED[feedItemIndex]?.autor_id ?? null) : null;
+
+    useEffect(() => {
+        if (!currentAutorId || !token) { setFeedAuthor(null); return; }
+        fetch(`${BASE_URL}/users/${currentAutorId}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => setFeedAuthor(data))
+            .catch(() => setFeedAuthor(null));
+    }, [currentAutorId, token]);
 
     const loadVinylTracks = useCallback(async (vinylId: number) => {
         if (feedLoadingRef.current) return;
@@ -298,6 +497,10 @@ export const PlayerScene = () => {
         setFeedMode(mode);
         feedSkipRef.current = 0;
         feedHasMoreRef.current = true;
+        if (mode === 'feed') {
+            setFeedItemIndex(0);
+            return;
+        }
         loadMoreFeed(mode, 0);
     };
 
@@ -383,6 +586,9 @@ export const PlayerScene = () => {
         }
         return idx;
     }, [showLyrics, currentSec]);
+
+    const isFeedMode = feedMode === 'feed';
+    const lyricsActive = showLyrics && !isFeedMode;
 
     return (
         <div
@@ -524,30 +730,32 @@ export const PlayerScene = () => {
             </div>
 
 
-            {/* Center spinning vinyl + lyrics */}
+            {/* Center: feed card or spinning vinyl + lyrics */}
             <div style={{
                 position: 'absolute',
                 top: '4.5rem',
                 bottom: '7rem',
                 left: 0,
-                right: showLyrics ? '5.75rem' : 0,
+                right: lyricsActive ? '5.75rem' : 0,
                 zIndex: 2,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: showLyrics ? 'flex-start' : 'center',
-                paddingLeft: showLyrics ? '24rem' : '0',
-                gap: showLyrics ? '1.5rem' : '0',
+                justifyContent: lyricsActive ? 'flex-start' : 'center',
+                paddingLeft: lyricsActive ? '24rem' : '0',
+                gap: lyricsActive ? '1.5rem' : '0',
                 opacity: cardVisible ? 1 : 0,
                 transform: cardVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.94)',
                 transition: 'opacity 0.21s ease, transform 0.21s ease',
-                pointerEvents: 'none',
+                pointerEvents: isFeedMode ? 'auto' : 'none',
             }}>
-                {currentTrack ? (
+                {isFeedMode ? (
+                    <FeedCard item={TEST_FEED[feedItemIndex] as FeedItem} author={feedAuthor} />
+                ) : currentTrack ? (
                     <>
                         <div style={{
                             position: 'relative',
-                            width: showLyrics ? 'clamp(120px, 32vw, 200px)' : 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
-                            height: showLyrics ? 'clamp(120px, 32vw, 200px)' : 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
+                            width: lyricsActive ? 'clamp(120px, 32vw, 200px)' : 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
+                            height: lyricsActive ? 'clamp(120px, 32vw, 200px)' : 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
                             flexShrink: 0,
                             transition: 'width 0.35s ease, height 0.35s ease',
                         }}>
@@ -600,7 +808,7 @@ export const PlayerScene = () => {
                             </div>
                         </div>
 
-                        {showLyrics && (
+                        {lyricsActive && (
                             <div style={{
                                 flex: 1,
                                 overflow: 'hidden',
@@ -683,24 +891,26 @@ export const PlayerScene = () => {
                             }}>
                                 {currentTrack.name}
                             </p>
-                            <button
-                                onClick={() => setShowLyrics(v => !v)}
-                                style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    padding: 0,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    opacity: showLyrics ? 1 : 0.5,
-                                    transition: 'opacity 0.2s',
-                                }}
-                            >
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M10.2088 16.1999H12.124M12.124 16.1999H14.128M12.124 16.1999V7.7999M12.124 7.7999H8.9999C8.66853 7.7999 8.3999 8.06853 8.3999 8.3999V9.28225M12.124 7.7999H14.9999C15.3313 7.7999 15.5999 8.06853 15.5999 8.3999V9.52931M4.7999 21.5999H19.1999C20.5254 21.5999 21.5999 20.5254 21.5999 19.1999V4.7999C21.5999 3.47442 20.5254 2.3999 19.1999 2.3999H4.7999C3.47442 2.3999 2.3999 3.47442 2.3999 4.7999V19.1999C2.3999 20.5254 3.47442 21.5999 4.7999 21.5999Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                            </button>
+                            {!isFeedMode && (
+                                <button
+                                    onClick={() => setShowLyrics(v => !v)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        opacity: showLyrics ? 1 : 0.5,
+                                        transition: 'opacity 0.2s',
+                                    }}
+                                >
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M10.2088 16.1999H12.124M12.124 16.1999H14.128M12.124 16.1999V7.7999M12.124 7.7999H8.9999C8.66853 7.7999 8.3999 8.06853 8.3999 8.3999V9.28225M12.124 7.7999H14.9999C15.3313 7.7999 15.5999 8.06853 15.5999 8.3999V9.52931M4.7999 21.5999H19.1999C20.5254 21.5999 21.5999 20.5254 21.5999 19.1999V4.7999C21.5999 3.47442 20.5254 2.3999 19.1999 2.3999H4.7999C3.47442 2.3999 2.3999 3.47442 2.3999 4.7999V19.1999C2.3999 20.5254 3.47442 21.5999 4.7999 21.5999Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                </button>
+                            )}
                         </div>
                         <p style={{
                             color: 'rgba(255,255,255,0.58)',
@@ -802,8 +1012,8 @@ export const PlayerScene = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        cursor: trackIndex === 0 ? 'default' : 'pointer',
-                        color: trackIndex === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.75)',
+                        cursor: (isFeedMode ? feedItemIndex === 0 : trackIndex === 0) ? 'default' : 'pointer',
+                        color: (isFeedMode ? feedItemIndex === 0 : trackIndex === 0) ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.75)',
                         fontSize: '1.1rem',
                         flexShrink: 0,
                     }}

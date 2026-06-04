@@ -9,7 +9,46 @@ import { VinylRow, VinylApi } from '../library/vinyls'
 
 const BASE = 'https://vapira.ru'
 
-type MainTab = 'tracks' | 'vinyls' | 'social' | null
+
+const TEST_FEED = [
+    {
+        type: 'text',
+        track_id: 11,
+        autor_id: 1,
+        vinyl_id: null,
+        image: null,
+        video: null,
+        text: 'test text for test feed, this is text feed, uraaa'
+    },
+    {
+        type: 'image',
+        track_id: 23,
+        autor_id: 4,
+        vinyl_id: null,
+        image: 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg',
+        video: null,
+        text: 'test text for test feed, this is image and text feed, uraaa'
+    },
+    {
+        type: 'video',
+        track_id: 24,
+        autor_id: 1,
+        image: null,
+        vinyl_id: null,
+        video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
+        text: 'test text for test feed, this is video and text feed, uraaa'
+    },
+    {
+        type: 'image',
+        track_id: 25,
+        autor_id: 4,
+        image: ['https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg'],
+        video: null,
+        text: 'test text for test feed, this is more images and text feed, uraaa'
+    }
+]
+
+type MainTab = 'feed' | 'tracks' | 'vinyls' | 'social' | null
 type SubTab = 'saved' | 'uploaded' | 'subscriptions' | 'subscribers'
 
 interface SubscriptionUser {
@@ -728,6 +767,99 @@ const AdminCheckIcon = () => (
     </svg>
 )
 
+interface FeedItem {
+    type: string;
+    track_id: number;
+    autor_id: number;
+    vinyl_id?: number | null;
+    image: string | string[] | null;
+    video: string | null;
+    text: string;
+}
+
+const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
+    const navigate = useNavigate()
+    const [track, setTrack] = useState<LibTrack | null>(null)
+    const [author, setAuthor] = useState<{ id: number; name?: string; email?: string; avatar_url?: string } | null>(null)
+
+    useEffect(() => {
+        fetch(`${BASE}/tracks/${item.track_id}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then((t: any) => {
+                if (!t?.id) return
+                setTrack({ id: String(t.id), title: t.title, artist: t.artist, cover: t.avatar_url, src: `${BASE}${t.stream_url}` })
+            })
+            .catch(() => {})
+    }, [item.track_id, token])
+
+    useEffect(() => {
+        fetch(`${BASE}/users/${item.autor_id}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then(setAuthor)
+            .catch(() => {})
+    }, [item.autor_id, token])
+
+    const isMultiImage = Array.isArray(item.image)
+    const isSingleImage = typeof item.image === 'string' && !!item.image
+    const isVideoFile = !!item.video && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(item.video)
+    const isGif = !!item.video && !isVideoFile
+
+    return (
+        <div style={{ borderBottom: '1px solid #1a1a1a', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+            <div
+                onClick={() => author && navigate(`/pages/users/${author.id}`)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, cursor: 'pointer' }}
+            >
+                <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', background: '#1f1f1f', flexShrink: 0 }}>
+                    {author?.avatar_url && (
+                        <img
+                            src={author.avatar_url.startsWith('http') ? author.avatar_url : `${BASE}${author.avatar_url}`}
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                    )}
+                </div>
+                <span style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 600 }}>
+                    {author?.name ?? author?.email ?? '—'}
+                </span>
+            </div>
+
+            {isMultiImage && (
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.image as string[]).length, 3)}, 1fr)`, gap: 2, borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+                    {(item.image as string[]).map((img, i) => (
+                        <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                    ))}
+                </div>
+            )}
+            {isSingleImage && (
+                <img src={item.image as string} alt="" style={{ width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 8, display: 'block', marginBottom: 12 }} />
+            )}
+            {isVideoFile && (
+                <video src={item.video!} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 8, display: 'block', marginBottom: 12 }} />
+            )}
+            {isGif && (
+                <img src={item.video!} alt="" style={{ width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 8, display: 'block', marginBottom: 12 }} />
+            )}
+
+            {item.text && (
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', lineHeight: 1.6, margin: '0 0 12px' }}>
+                    {item.text}
+                </p>
+            )}
+
+            {track && <TrackRow track={track} />}
+        </div>
+    )
+}
+
+const FeedPostsList = ({ token }: { token: string }) => (
+    <div style={{marginTop: '6rem'}}>
+        {TEST_FEED.map((item, i) => (
+            <FeedPost key={i} item={item as FeedItem} token={token} />
+        ))}
+    </div>
+)
+
 const PageLoader = () => (
     <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
@@ -749,7 +881,7 @@ export const ProfilePage = () => {
     const { user, token, logout } = useAuth()
     const { loadAndPlayExternal } = useAudioPlayer()
     const navigate = useNavigate()
-    const [mainTab, setMainTab] = useState<MainTab>(null)
+    const [mainTab, setMainTab] = useState<MainTab>('feed')
     const [subTab, setSubTab] = useState<SubTab>('saved')
     const [editOpen, setEditOpen] = useState(false)
     const [favTrack, setFavTrack] = useState<FavTrack | null>(null)
@@ -929,6 +1061,7 @@ export const ProfilePage = () => {
                         marginBottom: mainTab ? '1.5rem' : 0,
                     }}>
                         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                            <TabBtn active={mainTab === 'feed'} onClick={() => handleMainTab('feed')} label="Посты" />
                             <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                             <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
                             <TabBtn active={mainTab === 'social'} onClick={() => handleMainTab('social')} label="Подписки" />
@@ -941,6 +1074,11 @@ export const ProfilePage = () => {
                             <ActionBtn label="Выйти" onClick={handleLogout} danger />
                         </div>
                     </div>
+
+                    {/* Feed section */}
+                    {mainTab === 'feed' && token && (
+                        <FeedPostsList token={token} />
+                    )}
 
                     {/* Tracks section */}
                     {mainTab === 'tracks' && (
