@@ -274,7 +274,7 @@ export const PlayerScene = () => {
                 background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.05) 48%, rgba(0,0,0,0.4) 100%)',
             }} />
 
-            {/* Feed tabs */}
+            {/* Top bar: nav left + feed tabs center */}
             <div style={{
                 position: 'absolute',
                 top: 0,
@@ -282,48 +282,58 @@ export const PlayerScene = () => {
                 right: 0,
                 zIndex: 10,
                 display: 'flex',
-                justifyContent: 'center',
                 alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '0.4rem',
-                padding: '1.1rem 1rem 0.9rem',
+                padding: '0.75rem 0.75rem 0.6rem',
+                gap: '0.5rem',
                 background: 'linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%)',
             }}>
-                {FEED_MODES.map(mode => (
-                    <button
-                        key={mode}
-                        onClick={() => handleFeedSelect(mode)}
-                        style={{
-                            background: feedMode === mode ? 'rgba(255,255,255,0.18)' : 'transparent',
-                            border: `1px solid ${feedMode === mode ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.14)'}`,
-                            color: feedMode === mode ? '#fff' : 'rgba(255,255,255,0.42)',
-                            padding: '0.28rem 0.85rem',
-                            borderRadius: '2rem',
-                            cursor: 'pointer',
-                            fontSize: '0.6rem',
-                            fontWeight: 700,
-                            letterSpacing: '0.1em',
-                            textTransform: 'uppercase',
-                            transition: 'all 0.2s ease',
-                            backdropFilter: 'blur(6px)',
-                        }}
-                    >
-                        {feedMode === mode && feedLoading ? '...' : FEED_LABELS[mode]}
-                    </button>
-                ))}
+                {/* Feed tabs */}
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', flex: 1, justifyContent: 'flex-start' }}>
+                    {FEED_MODES.map(mode => (
+                        <button
+                            key={mode}
+                            onClick={() => handleFeedSelect(mode)}
+                            style={{
+                                background: feedMode === mode ? 'rgba(255,255,255,0.18)' : 'transparent',
+                                border: `1px solid ${feedMode === mode ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.14)'}`,
+                                color: feedMode === mode ? '#fff' : 'rgba(255,255,255,0.42)',
+                                padding: '0.28rem 0.75rem',
+                                borderRadius: '2rem',
+                                cursor: 'pointer',
+                                fontSize: '0.6rem',
+                                fontWeight: 700,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                transition: 'all 0.2s ease',
+                                backdropFilter: 'blur(6px)',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            {feedMode === mode && feedLoading ? '...' : FEED_LABELS[mode]}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Nav icons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem', flexShrink: 0 }}>
+                    <NavBtn path="/">{NAV_ICONS.home}</NavBtn>
+                    <NavBtn path="/pages/vinyl">{NAV_ICONS.vinyl}</NavBtn>
+                    <NavBtn path="/pages/profile">{NAV_ICONS.profile}</NavBtn>
+                </div>
             </div>
 
 
             {/* Center spinning vinyl */}
             <div style={{
                 position: 'absolute',
-                inset: 0,
+                top: '4.5rem',
+                bottom: '7rem',
+                left: 0,
+                right: 0,
                 zIndex: 2,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                paddingTop: '5rem',
-                paddingBottom: '14rem',
                 opacity: cardVisible ? 1 : 0,
                 transform: cardVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.94)',
                 transition: 'opacity 0.21s ease, transform 0.21s ease',
@@ -400,7 +410,7 @@ export const PlayerScene = () => {
             {/* Bottom left: track info */}
             <div style={{
                 position: 'absolute',
-                bottom: '6.5rem',
+                bottom: '6rem',
                 left: '1.5rem',
                 right: '5.75rem',
                 zIndex: 3,
@@ -594,43 +604,29 @@ export const PlayerScene = () => {
                 }}
                 style={{
                     position: 'absolute',
-                    bottom: '3.25rem',
+                    bottom: '1.75rem',
                     left: 0,
                     right: 0,
                     zIndex: 5,
-                    height: '2px',
-                    background: 'rgba(255,255,255,0.12)',
+                    height: '1.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
                     cursor: 'pointer',
+                    padding: '0 1.5rem',
+                    boxSizing: 'border-box',
                 }}
             >
-                <div style={{
-                    height: '100%',
-                    width: `${currentTime}%`,
-                    background: 'rgba(255,255,255,0.82)',
-                    transition: 'width 0.5s linear',
-                }} />
+                <div style={{ position: 'relative', width: '100%', height: '3px', background: 'rgba(255,255,255,0.12)' }}>
+                    <div style={{
+                        position: 'absolute',
+                        left: 0, top: 0, bottom: 0,
+                        width: `${currentTime}%`,
+                        background: 'rgba(255,255,255,0.82)',
+                        transition: 'width 0.5s linear',
+                    }} />
+                </div>
             </div>
 
-            {/* Bottom nav bar */}
-            <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                zIndex: 6,
-                height: '3.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '1rem',
-                background: 'rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(20px)',
-                borderTop: '1px solid rgba(255,255,255,0.06)',
-            }}>
-                <NavBtn path="/">{NAV_ICONS.home}</NavBtn>
-                <NavBtn path="/pages/vinyl">{NAV_ICONS.vinyl}</NavBtn>
-                <NavBtn path="/pages/profile">{NAV_ICONS.profile}</NavBtn>
-            </div>
 
             <style>{`
                 @keyframes spinRecord {
