@@ -824,6 +824,12 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
                 </span>
             </div>
 
+            {item.text && (
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', lineHeight: 1.6, margin: '0 0 12px' }}>
+                    {item.text}
+                </p>
+            )}
+
             {isMultiImage && (
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.image as string[]).length, 3)}, 1fr)`, gap: 2, borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
                     {(item.image as string[]).map((img, i) => (
@@ -841,19 +847,13 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
                 <img src={item.video!} alt="" style={{ width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 8, display: 'block', marginBottom: 12 }} />
             )}
 
-            {item.text && (
-                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', lineHeight: 1.6, margin: '0 0 12px' }}>
-                    {item.text}
-                </p>
-            )}
-
             {track && <TrackRow track={track} />}
         </div>
     )
 }
 
 const FeedPostsList = ({ token }: { token: string }) => (
-    <div style={{marginTop: '6rem'}}>
+    <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
         {TEST_FEED.map((item, i) => (
             <FeedPost key={i} item={item as FeedItem} token={token} />
         ))}
@@ -889,12 +889,24 @@ export const ProfilePage = () => {
     const [favTrackLoading, setFavTrackLoading] = useState(false)
     const [favVinylLoading, setFavVinylLoading] = useState(false)
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+    const [tabsVisible, setTabsVisible] = useState(true)
+    const tabsRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         const handler = () => setIsMobile(window.innerWidth < 640)
         window.addEventListener('resize', handler)
         return () => window.removeEventListener('resize', handler)
     }, [])
+
+    // useEffect(() => {
+    //     if (!tabsRef.current) return
+    //     const observer = new IntersectionObserver(
+    //         ([entry]) => setTabsVisible(entry.isIntersecting),
+    //         { threshold: 0 }
+    //     )
+    //     observer.observe(tabsRef.current)
+    //     return () => observer.disconnect()
+    // }, [])
 
     useEffect(() => {
         if (!user?.favorite_track_id || !token) { setFavTrack(null); setFavTrackLoading(false); return }
@@ -1060,7 +1072,7 @@ export const ProfilePage = () => {
                         gap: isMobile ? '0.75rem' : 0,
                         marginBottom: mainTab ? '1.5rem' : 0,
                     }}>
-                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        <div ref={tabsRef} style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
                             <TabBtn active={mainTab === 'feed'} onClick={() => handleMainTab('feed')} label="Посты" />
                             <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
                             <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Виниловые пластинки" />
@@ -1117,6 +1129,26 @@ export const ProfilePage = () => {
                     )}
                 </div>
             </div>
+
+            {/* Sticky sidebar — desktop only, appears when tabs scroll off screen */}
+            {!isMobile && !tabsVisible && (
+                <div style={{
+                    position: 'fixed',
+                    left: '1.5rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: 20,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
+                    alignItems: 'flex-start',
+                }}>
+                    <TabBtn active={mainTab === 'feed'} onClick={() => handleMainTab('feed')} label="Посты" />
+                    <TabBtn active={mainTab === 'tracks'} onClick={() => handleMainTab('tracks')} label="Треки" />
+                    <TabBtn active={mainTab === 'vinyls'} onClick={() => handleMainTab('vinyls')} label="Пластинки" />
+                    <TabBtn active={mainTab === 'social'} onClick={() => handleMainTab('social')} label="Подписки" />
+                </div>
+            )}
         </div>
     )
 }
