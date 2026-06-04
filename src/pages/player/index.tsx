@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/auth-context';
 import { useAudioPlayer } from '../../context/audio-context';
+import { useSaved } from '../../context/saved-context';
+import { Icon } from '../../components/icon';
 
 const BASE_URL = 'https://vapira.ru';
 const FEED_LIMIT = 10;
@@ -24,21 +26,49 @@ const formatTime = (sec: number) => {
     return `${m}:${s.toString().padStart(2, '0')}`;
 };
 
-const sideIconBtn = (disabled = false): React.CSSProperties => ({
-    background: disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: '50%',
-    width: 44,
-    height: 44,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: disabled ? 'default' : 'pointer',
-    color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.75)',
-    fontSize: '1rem',
-    flexShrink: 0,
-    transition: 'background 0.15s, color 0.15s',
-});
+const NAV_ICONS = {
+    home: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M3 9.41605C3 9.04665 3.18802 8.7001 3.50457 8.48603L11.3046 3.21117C11.7209 2.92961 12.2791 2.92961 12.6954 3.21117L20.4954 8.48603C20.812 8.70011 21 9.04665 21 9.41605V19.2882C21 20.2336 20.1941 21 19.2 21H4.8C3.80589 21 3 20.2336 3 19.2882V9.41605Z" stroke="white" strokeWidth="2"/>
+        </svg>
+    ),
+    vinyl: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M21.6 12C21.6 17.302 17.302 21.6 12 21.6C6.698 21.6 2.4 17.302 2.4 12C2.4 6.698 6.698 2.4 12 2.4C17.302 2.4 21.6 6.698 21.6 12Z" stroke="white" strokeWidth="2"/>
+            <path d="M14.4 12C14.4 13.325 13.325 14.4 12 14.4C10.675 14.4 9.6 13.325 9.6 12C9.6 10.675 10.675 9.6 12 9.6C13.325 9.6 14.4 10.675 14.4 12Z" stroke="white" strokeWidth="2"/>
+        </svg>
+    ),
+    profile: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="4" stroke="white" strokeWidth="2"/>
+            <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+    ),
+};
+
+const NavBtn = ({ path, children }: { path: string; children: React.ReactNode }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const active = location.pathname === path;
+    return (
+        <button
+            onClick={() => navigate(path)}
+            style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                padding: '4px 14px',
+                opacity: active ? 1 : 0.38,
+                transition: 'opacity 0.2s',
+            }}
+        >
+            {children}
+        </button>
+    );
+};
 
 export const PlayerScene = () => {
     const { token } = useAuth();
@@ -49,14 +79,17 @@ export const PlayerScene = () => {
         isPlaying,
         currentTime,
         durationSec,
+        volume,
         toggle,
         seek,
+        setVolume,
         next,
         prev,
         loadAndPlayExternal,
         loadQueueAndPlay,
         appendToQueue,
     } = useAudioPlayer();
+    const { savedIds, toggleSaved } = useSaved();
     const [searchParams] = useSearchParams();
 
     const [feedMode, setFeedMode] = useState<FeedMode | null>(null);
@@ -65,6 +98,21 @@ export const PlayerScene = () => {
     const feedHasMoreRef = useRef(true);
     const feedLoadingRef = useRef(false);
     const sharedTrackHandledRef = useRef(false);
+
+    const [showVolume, setShowVolume] = useState(false);
+    const volumeRef = useRef<HTMLDivElement>(null);
+
+    // Close volume popup on outside click
+    useEffect(() => {
+        if (!showVolume) return;
+        const handler = (e: MouseEvent) => {
+            if (volumeRef.current && !volumeRef.current.contains(e.target as Node)) {
+                setShowVolume(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [showVolume]);
 
     // Animation
     const [cardVisible, setCardVisible] = useState(true);
@@ -81,10 +129,7 @@ export const PlayerScene = () => {
         }, 210);
     }, []);
 
-    const goNext = useCallback(() => {
-        animate(next);
-    }, [animate, next]);
-
+    const goNext = useCallback(() => animate(next), [animate, next]);
     const goPrev = useCallback(() => {
         if (trackIndex === 0) return;
         animate(prev);
@@ -190,6 +235,7 @@ export const PlayerScene = () => {
 
     const cover = currentTrack?.cover;
     const currentSec = (currentTime / 100) * durationSec;
+    const isLiked = currentTrack ? savedIds.has(currentTrack.id) : false;
 
     return (
         <div
@@ -207,27 +253,25 @@ export const PlayerScene = () => {
             onTouchEnd={handleTouchEnd}
         >
             {/* Blurred BG */}
-            <div
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    zIndex: 0,
-                    backgroundImage: cover ? `url(${cover})` : undefined,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundColor: '#0a0a0a',
-                    filter: 'blur(48px) brightness(0.28) saturate(2)',
-                    transform: 'scale(1.15)',
-                    transition: 'background-image 0.7s ease',
-                }}
-            />
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 0,
+                backgroundImage: cover ? `url(${cover})` : undefined,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundColor: '#0a0a0a',
+                filter: 'blur(48px) brightness(0.28) saturate(2)',
+                transform: 'scale(1.15)',
+                transition: 'background-image 0.7s ease',
+            }} />
 
             {/* Gradient overlay */}
             <div style={{
                 position: 'absolute',
                 inset: 0,
                 zIndex: 1,
-                background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.05) 48%, rgba(0,0,0,0.4) 100%)',
+                background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.05) 48%, rgba(0,0,0,0.4) 100%)',
             }} />
 
             {/* Feed tabs */}
@@ -269,23 +313,8 @@ export const PlayerScene = () => {
                 ))}
             </div>
 
-            {/* Track counter */}
-            {audioTracks.length > 0 && (
-                <div style={{
-                    position: 'absolute',
-                    top: '4.5rem',
-                    right: '1.5rem',
-                    zIndex: 10,
-                    color: 'rgba(255,255,255,0.25)',
-                    fontSize: '0.58rem',
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                }}>
-                    {trackIndex + 1} / {audioTracks.length}
-                </div>
-            )}
 
-            {/* Center cover (spinning vinyl) */}
+            {/* Center spinning vinyl */}
             <div style={{
                 position: 'absolute',
                 inset: 0,
@@ -294,7 +323,7 @@ export const PlayerScene = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 paddingTop: '5rem',
-                paddingBottom: '13rem',
+                paddingBottom: '14rem',
                 opacity: cardVisible ? 1 : 0,
                 transform: cardVisible ? 'translateY(0) scale(1)' : 'translateY(30px) scale(0.94)',
                 transition: 'opacity 0.21s ease, transform 0.21s ease',
@@ -303,11 +332,10 @@ export const PlayerScene = () => {
                 {currentTrack ? (
                     <div style={{
                         position: 'relative',
-                        width: 'min(64vw, 290px)',
-                        height: 'min(64vw, 290px)',
+                        width: 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
+                        height: 'clamp(180px, min(62vw, calc(100vh - 20rem)), 380px)',
                         flexShrink: 0,
                     }}>
-                        {/* Outer vinyl ring */}
                         <div style={{
                             position: 'absolute',
                             inset: 0,
@@ -324,7 +352,6 @@ export const PlayerScene = () => {
                                 ? 'spinRecord 9s linear infinite'
                                 : 'spinRecord 9s linear infinite paused',
                         }}>
-                            {/* Cover art circle */}
                             <div style={{
                                 position: 'absolute',
                                 top: '50%',
@@ -344,7 +371,6 @@ export const PlayerScene = () => {
                                     />
                                 )}
                             </div>
-                            {/* Center hole */}
                             <div style={{
                                 position: 'absolute',
                                 top: '50%',
@@ -371,10 +397,10 @@ export const PlayerScene = () => {
                 )}
             </div>
 
-            {/* Bottom left info */}
+            {/* Bottom left: track info */}
             <div style={{
                 position: 'absolute',
-                bottom: '5.25rem',
+                bottom: '6.5rem',
                 left: '1.5rem',
                 right: '5.75rem',
                 zIndex: 3,
@@ -423,30 +449,94 @@ export const PlayerScene = () => {
                 )}
             </div>
 
-            {/* Right sidebar */}
+            {/* Right sidebar: controls */}
             <div style={{
                 position: 'absolute',
                 right: '1.1rem',
-                bottom: '4.75rem',
+                bottom: '6rem',
                 zIndex: 4,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '1.4rem',
+                gap: '1.35rem',
             }}>
+                {/* Volume */}
+                <div ref={volumeRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <Icon
+                        name="volume"
+                        size={22}
+                        color={showVolume ? '#fff' : 'rgba(255,255,255,0.65)'}
+                        hoverColor="#fff"
+                        isClick
+                        onClick={() => setShowVolume(v => !v)}
+                    />
+                    {showVolume && (
+                        <div style={{
+                            position: 'absolute',
+                            bottom: '140%',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            background: 'rgba(15,15,15,0.92)',
+                            backdropFilter: 'blur(12px)',
+                            borderRadius: 10,
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            padding: '10px 8px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 6,
+                            zIndex: 20,
+                        }}>
+                            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10 }}>
+                                {Math.round(volume * 100)}
+                            </span>
+                            <input
+                                className="player-seek"
+                                type="range"
+                                min={0}
+                                max={1}
+                                step={0.01}
+                                value={volume}
+                                onChange={e => setVolume(Number(e.target.value))}
+                                style={{
+                                    writingMode: 'vertical-lr' as const,
+                                    direction: 'rtl' as const,
+                                    height: 80,
+                                    width: 3,
+                                    cursor: 'pointer',
+                                    background: `linear-gradient(to top, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.85) ${volume * 100}%, rgba(255,255,255,0.2) ${volume * 100}%, rgba(255,255,255,0.2) 100%)`,
+                                }}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Prev */}
                 <button
                     onClick={goPrev}
-                    style={sideIconBtn(trackIndex === 0)}
-                    title="Предыдущий"
+                    style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '50%',
+                        width: 44,
+                        height: 44,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: trackIndex === 0 ? 'default' : 'pointer',
+                        color: trackIndex === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.75)',
+                        fontSize: '1.1rem',
+                        flexShrink: 0,
+                    }}
                 >
                     ↑
                 </button>
 
-                <button
+                {/* Play / Pause */}
+                <div
                     onClick={toggle}
                     style={{
                         background: 'rgba(255,255,255,0.96)',
-                        border: 'none',
                         borderRadius: '50%',
                         width: 54,
                         height: 54,
@@ -454,23 +544,46 @@ export const PlayerScene = () => {
                         alignItems: 'center',
                         justifyContent: 'center',
                         cursor: 'pointer',
-                        color: '#000',
-                        fontSize: '1.3rem',
                         boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
                         flexShrink: 0,
-                        transition: 'transform 0.1s ease',
                     }}
                 >
-                    {isPlaying ? '⏸' : '▶'}
-                </button>
+                    {isPlaying ? (
+                        <Icon name="PauseIcon" size={26} color="#000" style={{ display: 'flex' }} />
+                    ) : (
+                        <Icon name="PlayTwoIcon" size={26} color="#000" style={{ display: 'flex', paddingLeft: 2 }} />
+                    )}
+                </div>
 
+                {/* Next */}
                 <button
                     onClick={goNext}
-                    style={sideIconBtn(false)}
-                    title="Следующий"
+                    style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '50%',
+                        width: 44,
+                        height: 44,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: 'rgba(255,255,255,0.75)',
+                        fontSize: '1.1rem',
+                        flexShrink: 0,
+                    }}
                 >
                     ↓
                 </button>
+                {/* Like */}
+                <Icon
+                    name="LikeTwoIcon"
+                    size={22}
+                    color={isLiked ? '#FD5E5E' : 'rgba(255,255,255,0.65)'}
+                    hoverColor={isLiked ? '#FD5E5E' : '#fff'}
+                    isClick
+                    onClick={() => currentTrack && toggleSaved(currentTrack.id)}
+                />
             </div>
 
             {/* Progress bar */}
@@ -481,11 +594,11 @@ export const PlayerScene = () => {
                 }}
                 style={{
                     position: 'absolute',
-                    bottom: 0,
+                    bottom: '3.25rem',
                     left: 0,
                     right: 0,
                     zIndex: 5,
-                    height: '3px',
+                    height: '2px',
                     background: 'rgba(255,255,255,0.12)',
                     cursor: 'pointer',
                 }}
@@ -496,6 +609,27 @@ export const PlayerScene = () => {
                     background: 'rgba(255,255,255,0.82)',
                     transition: 'width 0.5s linear',
                 }} />
+            </div>
+
+            {/* Bottom nav bar */}
+            <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 6,
+                height: '3.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '1rem',
+                background: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(20px)',
+                borderTop: '1px solid rgba(255,255,255,0.06)',
+            }}>
+                <NavBtn path="/">{NAV_ICONS.home}</NavBtn>
+                <NavBtn path="/pages/vinyl">{NAV_ICONS.vinyl}</NavBtn>
+                <NavBtn path="/pages/profile">{NAV_ICONS.profile}</NavBtn>
             </div>
 
             <style>{`
