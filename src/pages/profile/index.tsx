@@ -6,6 +6,7 @@ import { useAudioPlayer } from '../../context/audio-context'
 import { Icon } from '../../components/icon'
 import { TrackRow, LibTrack } from '../library/track-row'
 import { VinylRow, VinylApi } from '../library/vinyls'
+import { CreatePostModal } from '../upload/post'
 
 const BASE = 'https://vapira.ru'
 
@@ -862,11 +863,10 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
     )
 }
 
-const FeedPostsList = ({ token }: { token: string }) => {
-    const navigate = useNavigate()
+const FeedPostsList = ({ token, onAddPost }: { token: string; onAddPost: () => void }) => {
     return (
         <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
-            <AddBtn label="+ добавить пост" onClick={() => navigate('/pages/upload/post')} />
+            <AddBtn label="+ добавить пост" onClick={onAddPost} />
             {TEST_FEED.map((item, i) => (
                 <FeedPost key={i} item={item as FeedItem} token={token} />
             ))}
@@ -898,6 +898,7 @@ export const ProfilePage = () => {
     const [mainTab, setMainTab] = useState<MainTab>('feed')
     const [subTab, setSubTab] = useState<SubTab>('saved')
     const [editOpen, setEditOpen] = useState(false)
+    const [postOpen, setPostOpen] = useState(false)
     const [favTrack, setFavTrack] = useState<FavTrack | null>(null)
     const [favVinyl, setFavVinyl] = useState<VinylApi | null>(null)
     const [favTrackLoading, setFavTrackLoading] = useState(false)
@@ -967,6 +968,7 @@ export const ProfilePage = () => {
     return (
         <div style={pageStyle}>
             {editOpen && <EditProfileModal onClose={() => setEditOpen(false)} />}
+            {postOpen && <CreatePostModal onClose={() => setPostOpen(false)} />}
             <PlayerTwo top />
             <div style={{width: '100%', height: '75vh'}}>
                 <img src={bgImage} style={{width: '100%', height: '75vh', objectFit: 'cover'}}/>
@@ -1103,7 +1105,7 @@ export const ProfilePage = () => {
 
                     {/* Feed section */}
                     {mainTab === 'feed' && token && (
-                        <FeedPostsList token={token} />
+                        <FeedPostsList token={token} onAddPost={() => setPostOpen(true)} />
                     )}
 
                     {/* Tracks section */}

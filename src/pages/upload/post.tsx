@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/auth-context'
-import { PlayerTwo } from '../../components/player/player-two'
 
 const BASE = 'https://vapira.ru'
 
@@ -10,27 +9,6 @@ interface TrackResult {
     artist: string
     avatar_url: string | null
     stream_url: string
-}
-
-const inputStyle: React.CSSProperties = {
-    background: 'transparent',
-    border: 'none',
-    borderBottom: '1px solid #333',
-    color: '#fff',
-    fontFamily: 'inherit',
-    fontSize: '1rem',
-    padding: '0.5rem 0',
-    outline: 'none',
-    width: '100%',
-}
-
-const labelStyle: React.CSSProperties = {
-    fontSize: '0.65rem',
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-    color: '#666',
-    marginBottom: '0.35rem',
-    display: 'block',
 }
 
 const fmtTime = (s: number) => {
@@ -72,15 +50,7 @@ const TrackMiniPlayer = ({
         : null
 
     return (
-        <div style={{
-            background: '#0d0d0d',
-            border: '1px solid #1a1a1a',
-            borderRadius: '0.75rem',
-            padding: '0.875rem 1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.875rem',
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <audio
                 ref={audioRef}
                 src={src}
@@ -88,18 +58,30 @@ const TrackMiniPlayer = ({
                 onDurationChange={() => audioRef.current && setDuration(audioRef.current.duration)}
                 onEnded={() => setPlaying(false)}
             />
-            <div style={{ width: 40, height: 40, borderRadius: '0.375rem', overflow: 'hidden', background: '#1a1a1a', flexShrink: 0 }}>
+            <button
+                onClick={toggle}
+                style={{
+                    width: 32, height: 32, flexShrink: 0,
+                    borderRadius: '50%', border: 'none',
+                    backgroundColor: '#fff', color: '#000',
+                    fontSize: '0.75rem', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+            >
+                {playing ? '⏸' : '▶'}
+            </button>
+            <div style={{ width: 36, height: 36, borderRadius: '0.3rem', overflow: 'hidden', background: '#1a1a1a', flexShrink: 0 }}>
                 {coverSrc && <img src={coverSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {track.title}
                 </div>
-                <div style={{ color: '#555', fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.4rem' }}>
+                <div style={{ color: '#666', fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.35rem' }}>
                     {track.artist}
                 </div>
                 <div
-                    style={{ height: 2, background: '#222', borderRadius: 2, cursor: 'pointer', position: 'relative' }}
+                    style={{ height: 2, background: '#2a2a2a', borderRadius: 2, cursor: 'pointer', position: 'relative' }}
                     onClick={handleBarClick}
                 >
                     <div style={{
@@ -110,49 +92,56 @@ const TrackMiniPlayer = ({
                     }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.2rem' }}>
-                    <span style={{ color: '#444', fontSize: '0.6rem' }}>{fmtTime(currentTime)}</span>
-                    <span style={{ color: '#444', fontSize: '0.6rem' }}>{fmtTime(duration)}</span>
+                    <span style={{ color: '#555', fontSize: '0.6rem' }}>{fmtTime(currentTime)}</span>
+                    <span style={{ color: '#555', fontSize: '0.6rem' }}>{fmtTime(duration)}</span>
                 </div>
             </div>
-            <button
-                onClick={toggle}
-                style={{
-                    width: 34, height: 34, flexShrink: 0,
-                    borderRadius: '50%', border: 'none',
-                    backgroundColor: '#fff', color: '#000',
-                    fontSize: '0.8rem', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-            >
-                {playing ? '⏸' : '▶'}
-            </button>
         </div>
     )
 }
 
-export const UploadPostPage = () => {
+const IconPhoto = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="M21 15l-5-5L5 21" />
+    </svg>
+)
+
+const IconVideo = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M15 10l4.553-2.276A1 1 0 0121 8.724v6.552a1 1 0 01-1.447.894L15 14" />
+        <rect x="3" y="6" width="12" height="12" rx="2" />
+    </svg>
+)
+
+const IconMusic = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 18V5l12-2v13" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="18" cy="16" r="3" />
+    </svg>
+)
+
+const PostComposer = ({ onClose }: { onClose: () => void }) => {
     const { user, token } = useAuth()
     const [query, setQuery] = useState('')
     const [searchResults, setSearchResults] = useState<TrackResult[]>([])
     const [searchLoading, setSearchLoading] = useState(false)
     const [selectedTrack, setSelectedTrack] = useState<TrackResult | null>(null)
+    const [showTrackPicker, setShowTrackPicker] = useState(false)
     const [text, setText] = useState('')
     const [images, setImages] = useState<File[]>([])
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
     const [videoFile, setVideoFile] = useState<File | null>(null)
     const [videoPreview, setVideoPreview] = useState<string | null>(null)
-    const [timeCode, setTimeCode] = useState('')
+    const [timeCode, setTimeCode] = useState<number | null>(null)
     const [seekSuggestion, setSeekSuggestion] = useState<number | null>(null)
-    const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
     const imageInputRef = useRef<HTMLInputElement>(null)
     const videoInputRef = useRef<HTMLInputElement>(null)
+    const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const pickerRef = useRef<HTMLDivElement>(null)
     const debounceRef = useRef<ReturnType<typeof setTimeout>>()
-
-    useEffect(() => {
-        const handler = () => setIsMobile(window.innerWidth < 640)
-        window.addEventListener('resize', handler)
-        return () => window.removeEventListener('resize', handler)
-    }, [])
 
     useEffect(() => {
         return () => {
@@ -160,6 +149,18 @@ export const UploadPostPage = () => {
             if (videoPreview) URL.revokeObjectURL(videoPreview)
         }
     }, [])
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+                setShowTrackPicker(false)
+                setQuery('')
+                setSearchResults([])
+            }
+        }
+        if (showTrackPicker) document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [showTrackPicker])
 
     useEffect(() => {
         clearTimeout(debounceRef.current)
@@ -177,11 +178,20 @@ export const UploadPostPage = () => {
         return () => clearTimeout(debounceRef.current)
     }, [query, token])
 
+    const autoResizeTextarea = () => {
+        const el = textareaRef.current
+        if (!el) return
+        el.style.height = 'auto'
+        el.style.height = `${el.scrollHeight}px`
+    }
+
     const handleSelectTrack = (t: TrackResult) => {
         setSelectedTrack(t)
         setQuery('')
         setSearchResults([])
+        setShowTrackPicker(false)
         setSeekSuggestion(null)
+        setTimeCode(null)
     }
 
     const handleAddImages = (files: FileList) => {
@@ -222,292 +232,370 @@ export const UploadPostPage = () => {
                 : images.length === 1 ? imagePreviews[0] : null,
             video: videoPreview || null,
             text,
-            timeCode: timeCode !== '' ? Number(timeCode) : null,
+            timeCode,
         }
         console.log('Post data:', post)
+        onClose()
     }
 
-    const canSubmit = text.trim().length > 0
+    const canSubmit = text.trim().length > 0 && selectedTrack !== null
+
+    const avatarInitial = user?.name ? user.name[0].toUpperCase() : '?'
 
     return (
         <div style={{
-            width: '100%',
-            minHeight: '100vh',
-            backgroundColor: '#000',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: isMobile ? '1rem' : '2rem',
-            paddingBottom: '6rem',
+            background: '#0a0a0a',
+            border: '1px solid #1c1c1c',
+            borderRadius: '1rem',
+            overflow: 'visible',
         }}>
-            <PlayerTwo top />
-            <div style={{ width: '100%', maxWidth: '520px', marginTop: isMobile ? '4rem' : '3rem' }}>
-
-                <h2 style={{
-                    color: '#fff', fontSize: '0.85rem', letterSpacing: '0.12em',
-                    textTransform: 'uppercase', marginBottom: '2rem', fontWeight: 600,
+            {/* Text area */}
+            <div style={{ display: 'flex', gap: '0.875rem', padding: '1.25rem 1.25rem 0' }}>
+                <div style={{
+                    width: 40, height: 40, borderRadius: '50%',
+                    background: '#1a1a1a', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#666', fontSize: '0.85rem', fontWeight: 600,
                 }}>
-                    Новый пост
-                </h2>
+                    {avatarInitial}
+                </div>
+                <textarea
+                    ref={textareaRef}
+                    value={text}
+                    onChange={e => { setText(e.target.value); autoResizeTextarea() }}
+                    placeholder="Что нового..."
+                    rows={3}
+                    style={{
+                        flex: 1,
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#fff',
+                        fontFamily: 'inherit',
+                        fontSize: '1rem',
+                        lineHeight: 1.5,
+                        outline: 'none',
+                        resize: 'none',
+                        padding: '0.5rem 0',
+                        minHeight: 72,
+                    }}
+                />
+            </div>
 
-                {/* Track picker */}
-                <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
-                    <span style={labelStyle}>Трек</span>
-                    {selectedTrack ? (
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <TrackMiniPlayer track={selectedTrack} onSeek={s => setSeekSuggestion(s)} />
-                            </div>
+            {/* Image previews */}
+            {imagePreviews.length > 0 && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: imagePreviews.length === 1 ? '1fr' : `repeat(${Math.min(imagePreviews.length, 3)}, 1fr)`,
+                    gap: 3,
+                    margin: '1rem 1.25rem 0',
+                    borderRadius: '0.625rem',
+                    overflow: 'hidden',
+                }}>
+                    {imagePreviews.map((src, i) => (
+                        <div key={i} style={{ position: 'relative', aspectRatio: imagePreviews.length === 1 ? '16/9' : '1' }}>
+                            <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                             <button
-                                onClick={() => { setSelectedTrack(null); setSeekSuggestion(null) }}
+                                onClick={() => handleRemoveImage(i)}
                                 style={{
-                                    background: 'none', border: 'none', color: '#555',
-                                    cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1,
-                                    padding: '0.5rem 0.25rem', flexShrink: 0,
+                                    position: 'absolute', top: 6, right: 6,
+                                    width: 24, height: 24, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.75)', border: 'none',
+                                    color: '#fff', fontSize: '0.8rem', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 }}
                             >×</button>
                         </div>
-                    ) : (
-                        <>
-                            <input
-                                value={query}
-                                onChange={e => setQuery(e.target.value)}
-                                placeholder="Поиск по названию или исполнителю..."
-                                style={inputStyle}
-                                autoComplete="off"
-                            />
-                            {(searchResults.length > 0 || searchLoading) && (
-                                <div style={{
-                                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                                    background: '#111', border: '1px solid #222', borderRadius: '0.5rem',
-                                    marginTop: '0.25rem', overflow: 'hidden',
-                                }}>
-                                    {searchLoading && (
-                                        <div style={{ color: '#555', fontSize: '0.8rem', padding: '0.75rem 1rem' }}>поиск...</div>
-                                    )}
-                                    {searchResults.map(t => (
-                                        <div
-                                            key={t.id}
-                                            onClick={() => handleSelectTrack(t)}
-                                            style={{
-                                                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                                padding: '0.625rem 0.875rem', cursor: 'pointer',
-                                                borderBottom: '1px solid #1a1a1a',
-                                                transition: 'background 0.15s',
-                                            }}
-                                            onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
-                                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                                        >
-                                            <div style={{ width: 32, height: 32, borderRadius: '0.25rem', overflow: 'hidden', background: '#222', flexShrink: 0 }}>
-                                                {t.avatar_url && (
-                                                    <img
-                                                        src={t.avatar_url.startsWith('http') ? t.avatar_url : `${BASE}${t.avatar_url}`}
-                                                        alt=""
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                    />
-                                                )}
-                                            </div>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ color: '#fff', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-                                                <div style={{ color: '#555', fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.artist}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </>
+                    ))}
+                </div>
+            )}
+
+            {/* Video preview */}
+            {videoPreview && (
+                <div style={{ position: 'relative', margin: '1rem 1.25rem 0', borderRadius: '0.625rem', overflow: 'hidden' }}>
+                    <video src={videoPreview} controls style={{ width: '100%', maxHeight: 260, display: 'block' }} />
+                    <button
+                        onClick={handleRemoveVideo}
+                        style={{
+                            position: 'absolute', top: 8, right: 8,
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.75)', border: 'none',
+                            color: '#fff', fontSize: '1rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                    >×</button>
+                </div>
+            )}
+
+            {/* Selected track */}
+            {selectedTrack && (
+                <div style={{
+                    margin: '1rem 1.25rem 0',
+                    background: '#111',
+                    border: '1px solid #1e1e1e',
+                    borderRadius: '0.625rem',
+                    padding: '0.75rem',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <TrackMiniPlayer track={selectedTrack} onSeek={s => setSeekSuggestion(s)} />
+                        </div>
+                        <button
+                            onClick={() => { setSelectedTrack(null); setSeekSuggestion(null); setTimeCode(null) }}
+                            style={{
+                                background: 'none', border: 'none', color: '#555',
+                                cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1,
+                                padding: '0.2rem 0.25rem', flexShrink: 0, marginTop: '0.1rem',
+                            }}
+                        >×</button>
+                    </div>
+                    {seekSuggestion !== null && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                            marginTop: '0.625rem',
+                            padding: '0.5rem 0.625rem',
+                            background: '#0d0d0d', borderRadius: '0.4rem',
+                            border: '1px solid #222',
+                        }}>
+                            <span style={{ color: '#888', fontSize: '0.75rem', flex: 1 }}>
+                                Тайм-код {fmtTime(seekSuggestion)}?
+                            </span>
+                            <button
+                                onClick={() => { setTimeCode(seekSuggestion); setSeekSuggestion(null) }}
+                                style={{
+                                    background: '#fff', color: '#000', border: 'none',
+                                    borderRadius: '0.3rem', padding: '0.25rem 0.6rem',
+                                    fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em',
+                                    textTransform: 'uppercase', cursor: 'pointer',
+                                }}
+                            >Да</button>
+                            <button
+                                onClick={() => setSeekSuggestion(null)}
+                                style={{ background: 'none', color: '#555', border: 'none', fontSize: '1rem', cursor: 'pointer', padding: '0 0.2rem', lineHeight: 1 }}
+                            >×</button>
+                        </div>
+                    )}
+                    {timeCode !== null && (
+                        <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ color: '#555', fontSize: '0.7rem' }}>тайм-код:</span>
+                            <span style={{ color: '#aaa', fontSize: '0.7rem', fontWeight: 600 }}>{fmtTime(timeCode)}</span>
+                            <button
+                                onClick={() => setTimeCode(null)}
+                                style={{ background: 'none', border: 'none', color: '#444', cursor: 'pointer', fontSize: '0.85rem', lineHeight: 1, padding: 0 }}
+                            >×</button>
+                        </div>
                     )}
                 </div>
+            )}
 
-                {/* Seek suggestion */}
-                {seekSuggestion !== null && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: '0.75rem',
-                        padding: '0.625rem 0.875rem',
-                        background: '#0d0d0d', border: '1px solid #222',
-                        borderRadius: '0.5rem', marginBottom: '1.25rem',
-                    }}>
-                        <span style={{ color: '#888', fontSize: '0.78rem', flex: 1 }}>
-                            Опубликовать с тайм-кодом {fmtTime(seekSuggestion)}?
-                        </span>
-                        <button
-                            onClick={() => { setTimeCode(String(seekSuggestion)); setSeekSuggestion(null) }}
+            {/* Track picker */}
+            {showTrackPicker && !selectedTrack && (
+                <div ref={pickerRef} style={{
+                    margin: '0.875rem 1.25rem 0',
+                    background: '#111',
+                    border: '1px solid #1e1e1e',
+                    borderRadius: '0.625rem',
+                    overflow: 'hidden',
+                }}>
+                    <div style={{ padding: '0.625rem 0.75rem', borderBottom: '1px solid #1a1a1a' }}>
+                        <input
+                            autoFocus
+                            value={query}
+                            onChange={e => setQuery(e.target.value)}
+                            placeholder="Поиск трека..."
                             style={{
-                                background: '#fff', color: '#000', border: 'none',
-                                borderRadius: '0.35rem', padding: '0.3rem 0.75rem',
-                                fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em',
-                                textTransform: 'uppercase', cursor: 'pointer',
+                                background: 'transparent', border: 'none',
+                                color: '#fff', fontFamily: 'inherit',
+                                fontSize: '0.9rem', outline: 'none', width: '100%', padding: 0,
                             }}
-                        >
-                            Да
-                        </button>
-                        <button
-                            onClick={() => setSeekSuggestion(null)}
-                            style={{
-                                background: 'none', color: '#555', border: 'none',
-                                fontSize: '1.1rem', cursor: 'pointer', padding: '0.1rem 0.25rem', lineHeight: 1,
-                            }}
-                        >×</button>
-                    </div>
-                )}
-
-                {/* Text */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <span style={labelStyle}>Текст</span>
-                    <textarea
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        placeholder="Напишите что-нибудь..."
-                        rows={4}
-                        style={{
-                            background: 'transparent',
-                            border: '1px solid #333',
-                            borderRadius: '0.5rem',
-                            color: '#fff',
-                            fontFamily: 'inherit',
-                            fontSize: '0.95rem',
-                            padding: '0.75rem',
-                            outline: 'none',
-                            width: '100%',
-                            resize: 'vertical',
-                            boxSizing: 'border-box',
-                        }}
-                    />
-                </div>
-
-                {/* Media buttons */}
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                    <button
-                        onClick={() => imageInputRef.current?.click()}
-                        style={{
-                            flex: 1, padding: '0.65rem',
-                            background: 'none', border: '1px dashed #333',
-                            borderRadius: '0.5rem', color: '#aaa',
-                            fontSize: '0.75rem', letterSpacing: '0.08em',
-                            textTransform: 'uppercase', cursor: 'pointer',
-                            transition: 'border-color 0.2s, color 0.2s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa' }}
-                    >
-                        + фото
-                    </button>
-                    <button
-                        onClick={() => videoInputRef.current?.click()}
-                        style={{
-                            flex: 1, padding: '0.65rem',
-                            background: 'none', border: '1px dashed #333',
-                            borderRadius: '0.5rem', color: '#aaa',
-                            fontSize: '0.75rem', letterSpacing: '0.08em',
-                            textTransform: 'uppercase', cursor: 'pointer',
-                            transition: 'border-color 0.2s, color 0.2s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.color = '#fff' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#aaa' }}
-                    >
-                        + видео
-                    </button>
-                    <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        style={{ display: 'none' }}
-                        onChange={e => { if (e.target.files) handleAddImages(e.target.files); e.target.value = '' }}
-                    />
-                    <input
-                        ref={videoInputRef}
-                        type="file"
-                        accept="video/*"
-                        style={{ display: 'none' }}
-                        onChange={e => { const f = e.target.files?.[0]; if (f) handleAddVideo(f); e.target.value = '' }}
-                    />
-                </div>
-
-                {/* Image previews */}
-                {imagePreviews.length > 0 && (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: `repeat(${Math.min(imagePreviews.length, 3)}, 1fr)`,
-                        gap: 4,
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        marginBottom: '1.25rem',
-                    }}>
-                        {imagePreviews.map((src, i) => (
-                            <div key={i} style={{ position: 'relative', aspectRatio: '1' }}>
-                                <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                <button
-                                    onClick={() => handleRemoveImage(i)}
-                                    style={{
-                                        position: 'absolute', top: 4, right: 4,
-                                        width: 22, height: 22, borderRadius: '50%',
-                                        background: 'rgba(0,0,0,0.7)', border: 'none',
-                                        color: '#fff', fontSize: '0.75rem', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        lineHeight: 1,
-                                    }}
-                                >×</button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Video preview */}
-                {videoPreview && (
-                    <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-                        <video
-                            src={videoPreview}
-                            controls
-                            style={{ width: '100%', maxHeight: 300, borderRadius: 8, display: 'block' }}
                         />
-                        <button
-                            onClick={handleRemoveVideo}
-                            style={{
-                                position: 'absolute', top: 8, right: 8,
-                                width: 26, height: 26, borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.7)', border: 'none',
-                                color: '#fff', fontSize: '1rem', cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                lineHeight: 1,
-                            }}
-                        >×</button>
                     </div>
+                    {searchLoading && (
+                        <div style={{ color: '#555', fontSize: '0.8rem', padding: '0.75rem 1rem' }}>поиск...</div>
+                    )}
+                    {!searchLoading && query.trim() && searchResults.length === 0 && (
+                        <div style={{ color: '#555', fontSize: '0.8rem', padding: '0.75rem 1rem' }}>ничего не найдено</div>
+                    )}
+                    {searchResults.map(t => (
+                        <div
+                            key={t.id}
+                            onClick={() => handleSelectTrack(t)}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                padding: '0.625rem 0.875rem', cursor: 'pointer',
+                                borderBottom: '1px solid #1a1a1a',
+                                transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                        >
+                            <div style={{ width: 34, height: 34, borderRadius: '0.3rem', overflow: 'hidden', background: '#222', flexShrink: 0 }}>
+                                {t.avatar_url && (
+                                    <img
+                                        src={t.avatar_url.startsWith('http') ? t.avatar_url : `${BASE}${t.avatar_url}`}
+                                        alt=""
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                )}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ color: '#fff', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                                <div style={{ color: '#555', fontSize: '0.7rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.artist}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Bottom toolbar */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0.75rem 1rem',
+                marginTop: '0.75rem',
+                borderTop: '1px solid #141414',
+                gap: '0.25rem',
+            }}>
+                <button
+                    onClick={() => imageInputRef.current?.click()}
+                    title="Добавить фото"
+                    style={{
+                        background: 'none', border: 'none', color: '#555', cursor: 'pointer',
+                        padding: '0.4rem', borderRadius: '0.4rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'color 0.15s, background 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#1a1a1a' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#555'; e.currentTarget.style.background = 'none' }}
+                >
+                    <IconPhoto />
+                </button>
+                <button
+                    onClick={() => videoInputRef.current?.click()}
+                    title="Добавить видео"
+                    style={{
+                        background: 'none', border: 'none', color: '#555', cursor: 'pointer',
+                        padding: '0.4rem', borderRadius: '0.4rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'color 0.15s, background 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#1a1a1a' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#555'; e.currentTarget.style.background = 'none' }}
+                >
+                    <IconVideo />
+                </button>
+                <button
+                    onClick={() => setShowTrackPicker(v => !v)}
+                    title="Прикрепить трек"
+                    style={{
+                        background: 'none', border: 'none',
+                        color: selectedTrack ? '#fff' : '#555',
+                        cursor: 'pointer',
+                        padding: '0.4rem', borderRadius: '0.4rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'color 0.15s, background 0.15s',
+                        position: 'relative',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = '#1a1a1a' }}
+                    onMouseLeave={e => { e.currentTarget.style.color = selectedTrack ? '#fff' : '#555'; e.currentTarget.style.background = 'none' }}
+                >
+                    <IconMusic />
+                    {!selectedTrack && (
+                        <span style={{
+                            position: 'absolute', top: 4, right: 4,
+                            width: 6, height: 6, borderRadius: '50%',
+                            background: '#e55',
+                        }} />
+                    )}
+                </button>
+
+                <div style={{ flex: 1 }} />
+
+                {text.length > 0 && (
+                    <span style={{ color: '#444', fontSize: '0.72rem', marginRight: '0.5rem' }}>
+                        {text.length}
+                    </span>
                 )}
 
-                {/* Timecode */}
-                <div style={{ marginBottom: '1.75rem' }}>
-                    <span style={labelStyle}>Тайм-код (секунды)</span>
-                    <input
-                        type="number"
-                        value={timeCode}
-                        onChange={e => setTimeCode(e.target.value)}
-                        placeholder="0"
-                        style={inputStyle}
-                    />
-                </div>
+                {!selectedTrack && (
+                    <span style={{ color: '#555', fontSize: '0.7rem', marginRight: '0.75rem', whiteSpace: 'nowrap' }}>
+                        трек обязателен
+                    </span>
+                )}
 
                 <button
                     onClick={handleSubmit}
                     disabled={!canSubmit}
                     style={{
-                        width: '100%',
-                        padding: '0.9rem',
-                        backgroundColor: canSubmit ? '#fff' : '#111',
+                        padding: '0.5rem 1.25rem',
+                        backgroundColor: canSubmit ? '#fff' : '#181818',
                         color: canSubmit ? '#000' : '#444',
                         border: 'none',
-                        borderRadius: '0.5rem',
+                        borderRadius: '2rem',
                         fontFamily: 'inherit',
                         fontSize: '0.8rem',
                         fontWeight: 700,
-                        letterSpacing: '0.12em',
-                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
                         cursor: canSubmit ? 'pointer' : 'not-allowed',
                         transition: 'all 0.2s',
+                        whiteSpace: 'nowrap',
                     }}
                 >
                     Опубликовать
                 </button>
+            </div>
+
+            <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={e => { if (e.target.files) handleAddImages(e.target.files); e.target.value = '' }}
+            />
+            <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleAddVideo(f); e.target.value = '' }}
+            />
+        </div>
+    )
+}
+
+export const CreatePostModal = ({ onClose }: { onClose: () => void }) => {
+    return (
+        <div
+            style={{
+                position: 'fixed', inset: 0, zIndex: 1000,
+                background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(6px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '1rem',
+            }}
+            onClick={e => { if (e.target === e.currentTarget) onClose() }}
+        >
+            <div style={{
+                width: '100%', maxWidth: 560,
+                maxHeight: '90vh', overflowY: 'auto',
+                display: 'flex', flexDirection: 'column', gap: '1rem',
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{
+                        color: '#fff', fontSize: '0.8rem',
+                        letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600,
+                    }}>
+                        Новый пост
+                    </span>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'none', border: 'none', color: '#666',
+                            cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1,
+                            padding: '0.25rem',
+                        }}
+                    >×</button>
+                </div>
+                <PostComposer onClose={onClose} />
             </div>
         </div>
     )
