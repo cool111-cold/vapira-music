@@ -550,6 +550,18 @@ export const VinylPage = () => {
         touchStartY.current = null;
     };
 
+        // Keyboard
+        useEffect(() => {
+            const onKey = (e: KeyboardEvent) => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') setCounter(e => Math.max(1, e - 1));
+                else if (e.key === 'ArrowRight' || e.key === 'd') setCounter(e => Math.min(vinyls.length, e + 1));
+                else if (e.key === 'Enter') setOpenCover((e) => !e);
+                else if (e.key === 'Escape') setOpenCover(false);
+            };
+            window.addEventListener('keydown', onKey);
+            return () => window.removeEventListener('keydown', onKey);
+        }, [setCounter, vinyls.length]);
+
     if (loading) {
         return (
             <div style={{ width: '100vw', height: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

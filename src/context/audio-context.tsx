@@ -29,6 +29,7 @@ interface AudioContextType {
     setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
     toggle: () => void;
     seek: (percent: number) => void;
+    seekAfterLoad: (sec: number) => void;
     setVolume: (v: number) => void;
     next: () => void;
     prev: () => void;
@@ -59,6 +60,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const howlRef = useRef<Howl | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const pendingSeekSecRef = useRef<number | null>(null);
     const trackIndexRef = useRef(0);
     const tracksRef = useRef<Track[]>([]);
     tracksRef.current = tracks;
@@ -102,6 +104,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             onload: () => {
                 const dur = howlRef.current?.duration() ?? 0;
                 setDurationSec(dur);
+                if (pendingSeekSecRef.current !== null && dur > 0) {
+                    howlRef.current?.seek(pendingSeekSecRef.current);
+                    setCurrentTime((pendingSeekSecRef.current / dur) * 100);
+                    pendingSeekSecRef.current = null;
+                }
             },
             onplay: () => {
                 setIsPlaying(true);
@@ -231,6 +238,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCurrentTime(percent);
     }, []);
 
+    const seekAfterLoad = useCallback((sec: number) => {
+        pendingSeekSecRef.current = sec;
+    }, []);
+
     const setVolume = useCallback((v: number) => {
         const clamped = Math.max(0, Math.min(1, v));
         volumeRef.current = clamped;
@@ -294,6 +305,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 setCollapsed,
                 toggle,
                 seek,
+                seekAfterLoad,
                 setVolume,
                 next,
                 prev,

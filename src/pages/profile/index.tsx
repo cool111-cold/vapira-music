@@ -18,7 +18,8 @@ const TEST_FEED = [
         vinyl_id: null,
         image: null,
         video: null,
-        text: 'test text for test feed, this is text feed, uraaa'
+        text: 'test text for test feed, this is text feed, uraaa',
+        timeCode: 31,
     },
     {
         type: 'image',
@@ -27,7 +28,8 @@ const TEST_FEED = [
         vinyl_id: null,
         image: 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg',
         video: null,
-        text: 'test text for test feed, this is image and text feed, uraaa'
+        text: 'test text for test feed, this is image and text feed, uraaa',
+        timeCode: null,
     },
     {
         type: 'video',
@@ -36,7 +38,8 @@ const TEST_FEED = [
         image: null,
         vinyl_id: null,
         video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
-        text: 'test text for test feed, this is video and text feed, uraaa'
+        text: 'test text for test feed, this is video and text feed, uraaa',
+        timeCode: 0,
     },
     {
         type: 'image',
@@ -44,7 +47,8 @@ const TEST_FEED = [
         autor_id: 4,
         image: ['https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg'],
         video: null,
-        text: 'test text for test feed, this is more images and text feed, uraaa'
+        text: 'test text for test feed, this is more images and text feed, uraaa',
+        timeCode: 117,
     }
 ]
 
@@ -775,10 +779,12 @@ interface FeedItem {
     image: string | string[] | null;
     video: string | null;
     text: string;
+    timeCode?: number | null;
 }
 
 const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
     const navigate = useNavigate()
+    const { seekAfterLoad } = useAudioPlayer()
     const [track, setTrack] = useState<LibTrack | null>(null)
     const [author, setAuthor] = useState<{ id: number; name?: string; email?: string; avatar_url?: string } | null>(null)
 
@@ -847,18 +853,26 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
                 <img src={item.video!} alt="" style={{ width: '100%', maxHeight: 400, objectFit: 'cover', borderRadius: 8, display: 'block', marginBottom: 12 }} />
             )}
 
-            {track && <TrackRow track={track} />}
+            {track && (
+                <div onClick={() => seekAfterLoad(item.timeCode ?? 0)}>
+                    <TrackRow track={track} />
+                </div>
+            )}
         </div>
     )
 }
 
-const FeedPostsList = ({ token }: { token: string }) => (
-    <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
-        {TEST_FEED.map((item, i) => (
-            <FeedPost key={i} item={item as FeedItem} token={token} />
-        ))}
-    </div>
-)
+const FeedPostsList = ({ token }: { token: string }) => {
+    const navigate = useNavigate()
+    return (
+        <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
+            <AddBtn label="+ добавить пост" onClick={() => navigate('/pages/upload/post')} />
+            {TEST_FEED.map((item, i) => (
+                <FeedPost key={i} item={item as FeedItem} token={token} />
+            ))}
+        </div>
+    )
+}
 
 const PageLoader = () => (
     <div style={{

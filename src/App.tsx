@@ -9,6 +9,7 @@ import { MyProvider } from './context';
 import { PlayerScene } from './pages/player';
 import { UploadTrackPage } from './pages/upload/track';
 import { CreateVinylPage } from './pages/upload/vinyl';
+import { UploadPostPage } from './pages/upload/post';
 import { AuthPage } from './pages/auth';
 import { LibraryPage } from './pages/library';
 import { TracksPage } from './pages/library/tracks';
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/pages/vinyl" element={<ProtectedRoute><VinylPage /></ProtectedRoute>} />
               <Route path="/pages/upload/track" element={<ProtectedRoute><UploadTrackPage /></ProtectedRoute>} />
               <Route path="/pages/upload/vinyl" element={<ProtectedRoute><CreateVinylPage /></ProtectedRoute>} />
+              <Route path="/pages/upload/post" element={<ProtectedRoute><UploadPostPage /></ProtectedRoute>} />
               <Route path="/pages/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
               <Route path="/pages/tracks" element={<ProtectedRoute><TracksPage /></ProtectedRoute>} />
               <Route path="/pages/saved" element={<ProtectedRoute><SavedPage /></ProtectedRoute>} />

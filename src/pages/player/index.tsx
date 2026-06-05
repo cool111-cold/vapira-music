@@ -62,7 +62,8 @@ const TEST_FEED = [
         vinyl_id: null,
         image: null,
         video: null,
-        text: 'test text for test feed, this is text feed, uraaa'
+        text: 'test text for test feed, this is text feed, uraaa',
+        timeCode: 31,
     },
     {
         type: 'image',
@@ -71,7 +72,8 @@ const TEST_FEED = [
         vinyl_id: null,
         image: 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg',
         video: null,
-        text: 'test text for test feed, this is image and text feed, uraaa'
+        text: 'test text for test feed, this is image and text feed, uraaa',
+        timeCode: null,
     },
     {
         type: 'video',
@@ -80,7 +82,8 @@ const TEST_FEED = [
         image: null,
         vinyl_id: null,
         video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
-        text: 'test text for test feed, this is video and text feed, uraaa'
+        text: 'test text for test feed, this is video and text feed, uraaa',
+        timeCode: 0,
     },
     {
         type: 'image',
@@ -88,7 +91,8 @@ const TEST_FEED = [
         autor_id: 4,
         image: ['https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg'],
         video: null,
-        text: 'test text for test feed, this is more images and text feed, uraaa'
+        text: 'test text for test feed, this is more images and text feed, uraaa',
+        timeCode: 117,
     }
 ]
 
@@ -292,6 +296,7 @@ export const PlayerScene = () => {
         volume,
         toggle,
         seek,
+        seekAfterLoad,
         setVolume,
         next,
         prev,
@@ -427,6 +432,7 @@ export const PlayerScene = () => {
                     cover: t.avatar_url ?? undefined,
                     src: `${BASE_URL}${t.stream_url}`,
                 });
+                seekAfterLoad(TEST_FEED[feedItemIndex]?.timeCode ?? 0);
             })
             .catch(() => {});
     }, [currentFeedTrackId, token]);
