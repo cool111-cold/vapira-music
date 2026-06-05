@@ -39,7 +39,7 @@ const TEST_FEED = [
         image: null,
         vinyl_id: null,
         video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
-        text: 'test text for test feed, this is video and text feed, uraaa',
+        text: '',
         timeCode: 0,
     },
     {
@@ -863,10 +863,9 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
     )
 }
 
-const FeedPostsList = ({ token, onAddPost }: { token: string; onAddPost: () => void }) => {
+const FeedPostsList = ({ token }: { token: string }) => {
     return (
         <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
-            <AddBtn label="+ добавить пост" onClick={onAddPost} />
             {TEST_FEED.map((item, i) => (
                 <FeedPost key={i} item={item as FeedItem} token={token} />
             ))}
@@ -1105,7 +1104,7 @@ export const ProfilePage = () => {
 
                     {/* Feed section */}
                     {mainTab === 'feed' && token && (
-                        <FeedPostsList token={token} onAddPost={() => setPostOpen(true)} />
+                        <FeedPostsList token={token} />
                     )}
 
                     {/* Tracks section */}
@@ -1145,6 +1144,39 @@ export const ProfilePage = () => {
                     )}
                 </div>
             </div>
+
+            {/* FAB: context-aware add button */}
+            <button
+                onClick={
+                    mainTab === 'tracks' ? () => navigate('/pages/upload/track') :
+                    mainTab === 'vinyls' ? () => navigate('/pages/upload/vinyl') :
+                    () => setPostOpen(true)
+                }
+                style={{
+                    position: 'fixed',
+                    bottom: '1.5rem',
+                    right: '1.5rem',
+                    zIndex: 50,
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    background: '#fff',
+                    border: 'none',
+                    color: '#000',
+                    fontSize: '1.6rem',
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+                    transition: 'transform 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+            >
+                +
+            </button>
 
             {/* Sticky sidebar — desktop only, appears when tabs scroll off screen */}
             {!isMobile && !tabsVisible && (

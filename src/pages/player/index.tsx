@@ -82,7 +82,7 @@ const TEST_FEED = [
         image: null,
         vinyl_id: null,
         video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
-        text: 'test text for test feed, this is video and text feed, uraaa',
+        text: '',
         timeCode: 0,
     },
     {
@@ -202,10 +202,13 @@ const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null 
     const navigate = useNavigate();
     const DEFAULT_AVATAR = '/images/ava.jpg'
 
+    const hasMedia = isMultiImage || isSingleImage || isVideoFile || isGif;
+
     return (
         <div style={{
             width: 'min(400px, 88vw)',
             minHeight: item.type === 'text' ? 200 : undefined,
+            height: hasMedia ? 'calc(100vh - 18rem)' : undefined,
             maxHeight: 'calc(100vh - 18rem)',
             borderRadius: 20,
             overflow: 'hidden',
@@ -217,7 +220,7 @@ const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null 
             boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
         }}>
             {/* Author header */}
-            <div onClick={() => navigate(`/pages/users/${author?.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
+            <div onClick={() => navigate(`/pages/users/${author?.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', flexShrink: 0 }}>
                 <div style={{
                     width: 32, height: 32, borderRadius: '50%',
                     overflow: 'hidden', background: '#1f1f1f', flexShrink: 0,
@@ -228,7 +231,7 @@ const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null 
                             alt=""
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
-                    ) : 
+                    ) :
                     <img
                         src={DEFAULT_AVATAR}
                         alt=""
@@ -243,29 +246,38 @@ const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null 
             {/* Multiple images */}
             {isMultiImage && (
                 <div style={{
+                    flex: '1 1 auto',
+                    minHeight: 0,
+                    overflow: 'hidden',
                     display: 'grid',
                     gridTemplateColumns: `repeat(${Math.min((item.image as string[]).length, 3)}, 1fr)`,
                     gap: 2,
                 }}>
                     {(item.image as string[]).map((img, i) => (
-                        <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                        <img key={i} src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     ))}
                 </div>
             )}
 
             {/* Single image */}
             {isSingleImage && (
-                <img src={item.image as string} alt="" style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block' }} />
+                <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
+                    <img src={item.image as string} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
             )}
 
             {/* Video */}
             {isVideoFile && (
-                <video src={item.video!} autoPlay loop muted playsInline style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block' }} />
+                <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
+                    <video src={item.video!} autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
             )}
 
             {/* GIF / animated image */}
             {isGif && (
-                <img src={item.video!} alt="" style={{ width: '100%', maxHeight: '45vh', objectFit: 'cover', display: 'block' }} />
+                <div style={{ flex: '1 1 auto', minHeight: 0, overflow: 'hidden' }}>
+                    <img src={item.video!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
             )}
 
             {/* Text */}
@@ -276,6 +288,7 @@ const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null 
                     fontSize: item.type === 'text' ? '1.05rem' : '0.875rem',
                     lineHeight: 1.65,
                     textAlign: item.type === 'text' ? 'center' : undefined,
+                    flexShrink: 0,
                 }}>
                     {item.text}
                 </div>
