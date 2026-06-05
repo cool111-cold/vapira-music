@@ -137,6 +137,8 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
     const [videoPreview, setVideoPreview] = useState<string | null>(null)
     const [timeCode, setTimeCode] = useState<number | null>(null)
     const [seekSuggestion, setSeekSuggestion] = useState<number | null>(null)
+    const [submitting, setSubmitting] = useState(false)
+    const [error, setError] = useState('')
     const imageInputRef = useRef<HTMLInputElement>(null)
     const videoInputRef = useRef<HTMLInputElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -219,26 +221,39 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
         setVideoPreview(null)
     }
 
-    const postType = videoFile ? 'video' : images.length > 0 ? 'image' : 'text'
+    const handleSubmit = async () => {
+        if (!token || submitting) return
+        setSubmitting(true)
+        setError('')
+        try {
+            const type = videoFile ? 'video' : images.length > 0 ? 'images' : 'text'
 
-    const handleSubmit = () => {
-        const post = {
-            type: postType,
-            track_id: selectedTrack?.id ?? null,
-            autor_id: user?.id ? Number(user.id) : null,
-            vinyl_id: null,
-            image: images.length > 1
-                ? imagePreviews
-                : images.length === 1 ? imagePreviews[0] : null,
-            video: videoPreview || null,
-            text,
-            timeCode,
+            const fd = new FormData()
+            fd.append('type', type)
+            if (text.trim()) fd.append('text', text.trim())
+            if (selectedTrack) fd.append('track_id', String(selectedTrack.id))
+            if (timeCode !== null) fd.append('time_code', String(timeCode))
+            images.forEach(img => fd.append('image', img))
+            if (videoFile) fd.append('video', videoFile)
+
+            const res = await fetch(`${BASE}/posts`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: fd,
+            })
+            if (!res.ok) {
+                const errData = await res.json().catch(() => null)
+                throw new Error(errData?.detail ?? `Ошибка ${res.status}`)
+            }
+            onClose()
+        } catch (e: any) {
+            setError(e.message ?? 'Ошибка')
+        } finally {
+            setSubmitting(false)
         }
-        console.log('Post data:', post)
-        onClose()
     }
 
-    const canSubmit = text.trim().length > 0 && selectedTrack !== null
+    const canSubmit = !submitting && (text.trim().length > 0 || selectedTrack !== null || images.length > 0 || videoFile !== null)
 
     const avatarInitial = user?.name ? user.name[0].toUpperCase() : '?'
 
@@ -516,9 +531,9 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
                     </span>
                 )}
 
-                {!selectedTrack && (
-                    <span style={{ color: '#555', fontSize: '0.7rem', marginRight: '0.75rem', whiteSpace: 'nowrap' }}>
-                        трек обязателен
+                {error && (
+                    <span style={{ color: '#ff6b6b', fontSize: '0.7rem', marginRight: '0.5rem', whiteSpace: 'nowrap' }}>
+                        {error}
                     </span>
                 )}
 
@@ -540,7 +555,7 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
                         whiteSpace: 'nowrap',
                     }}
                 >
-                    Опубликовать
+                    {submitting ? '...' : 'Опубликовать'}
                 </button>
             </div>
 

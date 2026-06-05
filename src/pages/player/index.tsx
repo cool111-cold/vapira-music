@@ -54,48 +54,6 @@ const LYRICS_LRC = `[00:49.94]Whip it like a Nascar, I can see the time pass
 [03:04.27]Never in the streets 'cause I never leave my home
 [03:07.11]If you wanna live a dream, I ain't coming, bitch, I-`;
 
-const TEST_FEED = [
-    {
-        type: 'text',
-        track_id: 11,
-        autor_id: 1,
-        vinyl_id: null,
-        image: null,
-        video: null,
-        text: 'test text for test feed, this is text feed, uraaa',
-        timeCode: 31,
-    },
-    {
-        type: 'image',
-        track_id: 23,
-        autor_id: 4,
-        vinyl_id: null,
-        image: 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg',
-        video: null,
-        text: 'test text for test feed, this is image and text feed, uraaa',
-        timeCode: null,
-    },
-    {
-        type: 'video',
-        track_id: 24,
-        autor_id: 1,
-        image: null,
-        vinyl_id: null,
-        video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
-        text: '',
-        timeCode: 0,
-    },
-    {
-        type: 'image',
-        track_id: 25,
-        autor_id: 4,
-        image: ['https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg'],
-        video: null,
-        text: 'test text for test feed, this is more images and text feed, uraaa',
-        timeCode: 117,
-    }
-]
-
 const parseLrc = (lrc: string): { time: number; text: string }[] =>
     lrc.trim().split('\n')
         .map(line => {
@@ -184,7 +142,19 @@ interface FeedAuthor {
     avatar_url?: string;
 }
 
+interface ApiPost {
+    id: number;
+    text?: string | null;
+    image_url?: string | null;
+    track_id?: number | null;
+    vinyl_id?: number | null;
+    user_id?: number | null;
+    author_id?: number | null;
+    time_code?: number | null;
+}
+
 interface FeedItem {
+    id?: number;
     type: string;
     track_id: number;
     autor_id: number;
@@ -192,7 +162,20 @@ interface FeedItem {
     image: string | string[] | null;
     video: string | null;
     text: string;
+    timeCode?: number | null;
 }
+
+const mapApiPost = (p: ApiPost): FeedItem => ({
+    id: p.id,
+    type: p.image_url ? 'image' : 'text',
+    track_id: p.track_id ?? 0,
+    autor_id: p.user_id ?? p.author_id ?? 0,
+    vinyl_id: p.vinyl_id ?? null,
+    image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : `${BASE_URL}${p.image_url}`) : null,
+    video: null,
+    text: p.text ?? '',
+    timeCode: p.time_code ?? null,
+});
 
 const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null }) => {
     const isMultiImage = Array.isArray(item.image);
@@ -329,6 +312,11 @@ export const PlayerScene = () => {
     const sharedTrackHandledRef = useRef(false);
 
     const [feedItemIndex, setFeedItemIndex] = useState(0);
+    const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+    const feedItemsRef = useRef<FeedItem[]>([]);
+    feedItemsRef.current = feedItems;
+    const feedPostsSkipRef = useRef(0);
+    const feedPostsHasMoreRef = useRef(true);
     const [feedAuthor, setFeedAuthor] = useState<FeedAuthor | null>(null);
 
     const [vinylTab, setVinylTab] = useState<{ id: number; name: string; videoCover: string | null } | null>(null);
@@ -373,7 +361,7 @@ export const PlayerScene = () => {
 
     const goNext = useCallback(() => {
         if (feedModeRef.current === 'feed') {
-            animate(() => setFeedItemIndex(i => Math.min(i + 1, TEST_FEED.length - 1)));
+            animate(() => setFeedItemIndex(i => Math.min(i + 1, Math.max(feedItemsRef.current.length - 1, 0))));
         } else {
             animate(next);
         }
@@ -388,6 +376,31 @@ export const PlayerScene = () => {
             animate(prev);
         }
     }, [animate, prev, trackIndex]);
+
+    const loadPostsFeed = useCallback(async (skip: number) => {
+        if (feedLoadingRef.current) return;
+        feedLoadingRef.current = true;
+        if (skip === 0) setFeedLoading(true);
+        try {
+            const r = await fetch(
+                `${BASE_URL}/posts/feed?skip=${skip}&limit=${FEED_LIMIT}`,
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            const data: ApiPost[] = await r.json();
+            if (!Array.isArray(data)) return;
+            const newItems = data.map(mapApiPost);
+            if (skip === 0) setFeedItems(newItems);
+            else setFeedItems(prev => [...prev, ...newItems]);
+            feedPostsSkipRef.current = skip + data.length;
+            if (data.length < FEED_LIMIT) feedPostsHasMoreRef.current = false;
+        } catch {} finally {
+            feedLoadingRef.current = false;
+            setFeedLoading(false);
+        }
+    }, [token]);
+
+    const loadPostsFeedRef = useRef(loadPostsFeed);
+    loadPostsFeedRef.current = loadPostsFeed;
 
     // Load feed
     const loadMoreFeed = useCallback(async (mode: FeedMode, skip: number) => {
@@ -429,8 +442,15 @@ export const PlayerScene = () => {
         }
     }, [trackIndex, audioTracks.length, feedMode]);
 
+    useEffect(() => {
+        if (feedMode !== 'feed' || !feedPostsHasMoreRef.current) return;
+        if (feedItems.length > 0 && feedItemIndex >= feedItems.length - 3) {
+            loadPostsFeedRef.current(feedPostsSkipRef.current);
+        }
+    }, [feedItemIndex, feedItems.length, feedMode]);
+
     // Load track for current feed item (only when track_id changes)
-    const currentFeedTrackId = feedMode === 'feed' ? (TEST_FEED[feedItemIndex]?.track_id ?? null) : null;
+    const currentFeedTrackId = feedMode === 'feed' ? (feedItems[feedItemIndex]?.track_id || null) : null;
 
     useEffect(() => {
         if (!currentFeedTrackId || !token) return;
@@ -445,13 +465,13 @@ export const PlayerScene = () => {
                     cover: t.avatar_url ?? undefined,
                     src: `${BASE_URL}${t.stream_url}`,
                 });
-                seekAfterLoad(TEST_FEED[feedItemIndex]?.timeCode ?? 0);
+                seekAfterLoad(feedItems[feedItemIndex]?.timeCode ?? 0);
             })
             .catch(() => {});
     }, [currentFeedTrackId, token]);
 
     // Load author for current feed item
-    const currentAutorId = feedMode === 'feed' ? (TEST_FEED[feedItemIndex]?.autor_id ?? null) : null;
+    const currentAutorId = feedMode === 'feed' ? (feedItems[feedItemIndex]?.autor_id || null) : null;
 
     useEffect(() => {
         if (!currentAutorId || !token) { setFeedAuthor(null); return; }
@@ -517,7 +537,11 @@ export const PlayerScene = () => {
         feedSkipRef.current = 0;
         feedHasMoreRef.current = true;
         if (mode === 'feed') {
+            setFeedItems([]);
             setFeedItemIndex(0);
+            feedPostsSkipRef.current = 0;
+            feedPostsHasMoreRef.current = true;
+            loadPostsFeed(0);
             return;
         }
         loadMoreFeed(mode, 0);
@@ -767,9 +791,9 @@ export const PlayerScene = () => {
                 transition: 'opacity 0.21s ease, transform 0.21s ease',
                 pointerEvents: isFeedMode ? 'auto' : 'none',
             }}>
-                {isFeedMode ? (
-                    <FeedCard item={TEST_FEED[feedItemIndex] as FeedItem} author={feedAuthor} />
-                ) : currentTrack ? (
+                {isFeedMode && feedItems[feedItemIndex] ? (
+                    <FeedCard item={feedItems[feedItemIndex]} author={feedAuthor} />
+                ) : !isFeedMode && currentTrack ? (
                     <>
                         <div style={{
                             position: 'relative',

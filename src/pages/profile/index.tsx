@@ -11,48 +11,6 @@ import { CreatePostModal } from '../upload/post'
 const BASE = 'https://vapira.ru'
 
 
-const TEST_FEED = [
-    {
-        type: 'text',
-        track_id: 11,
-        autor_id: 1,
-        vinyl_id: null,
-        image: null,
-        video: null,
-        text: 'test text for test feed, this is text feed, uraaa',
-        timeCode: 31,
-    },
-    {
-        type: 'image',
-        track_id: 23,
-        autor_id: 4,
-        vinyl_id: null,
-        image: 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg',
-        video: null,
-        text: 'test text for test feed, this is image and text feed, uraaa',
-        timeCode: null,
-    },
-    {
-        type: 'video',
-        track_id: 24,
-        autor_id: 1,
-        image: null,
-        vinyl_id: null,
-        video: 'https://vapira.ru/media/vinyl/ezgif-5dd68ae77c7b1c07.gif',
-        text: '',
-        timeCode: 0,
-    },
-    {
-        type: 'image',
-        track_id: 25,
-        autor_id: 4,
-        image: ['https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg', 'https://i.pinimg.com/736x/71/8e/7f/718e7f1da60c918f48513fd0722bc352.jpg'],
-        video: null,
-        text: 'test text for test feed, this is more images and text feed, uraaa',
-        timeCode: 117,
-    }
-]
-
 type MainTab = 'feed' | 'tracks' | 'vinyls' | 'social' | null
 type SubTab = 'saved' | 'uploaded' | 'subscriptions' | 'subscribers'
 
@@ -772,7 +730,19 @@ const AdminCheckIcon = () => (
     </svg>
 )
 
+interface ApiPost {
+    id: number;
+    text?: string | null;
+    image_url?: string | null;
+    track_id?: number | null;
+    vinyl_id?: number | null;
+    user_id?: number | null;
+    author_id?: number | null;
+    time_code?: number | null;
+}
+
 interface FeedItem {
+    id?: number;
     type: string;
     track_id: number;
     autor_id: number;
@@ -783,6 +753,18 @@ interface FeedItem {
     timeCode?: number | null;
 }
 
+const mapApiPost = (p: ApiPost): FeedItem => ({
+    id: p.id,
+    type: p.image_url ? 'image' : 'text',
+    track_id: p.track_id ?? 0,
+    autor_id: p.user_id ?? p.author_id ?? 0,
+    vinyl_id: p.vinyl_id ?? null,
+    image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : `${BASE}${p.image_url}`) : null,
+    video: null,
+    text: p.text ?? '',
+    timeCode: p.time_code ?? null,
+});
+
 const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
     const navigate = useNavigate()
     const { seekAfterLoad } = useAudioPlayer()
@@ -790,6 +772,7 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
     const [author, setAuthor] = useState<{ id: number; name?: string; email?: string; avatar_url?: string } | null>(null)
 
     useEffect(() => {
+        if (!item.track_id) return
         fetch(`${BASE}/tracks/${item.track_id}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.ok ? r.json() : null)
             .then((t: any) => {
@@ -863,12 +846,60 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
     )
 }
 
+const POSTS_LIMIT = 20
+
 const FeedPostsList = ({ token }: { token: string }) => {
+    const [posts, setPosts] = useState<FeedItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [hasMore, setHasMore] = useState(true)
+    const [skip, setSkip] = useState(0)
+
+    useEffect(() => {
+        setLoading(true)
+        fetch(`${BASE}/posts/my?skip=0&limit=${POSTS_LIMIT}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then((data: ApiPost[]) => {
+                if (!Array.isArray(data)) return
+                setPosts(data.map(mapApiPost))
+                setSkip(data.length)
+                if (data.length < POSTS_LIMIT) setHasMore(false)
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false))
+    }, [token])
+
+    const loadMore = () => {
+        fetch(`${BASE}/posts/my?skip=${skip}&limit=${POSTS_LIMIT}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then((data: ApiPost[]) => {
+                if (!Array.isArray(data)) return
+                setPosts(prev => [...prev, ...data.map(mapApiPost)])
+                setSkip(s => s + data.length)
+                if (data.length < POSTS_LIMIT) setHasMore(false)
+            })
+            .catch(() => {})
+    }
+
     return (
         <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
-            {TEST_FEED.map((item, i) => (
-                <FeedPost key={i} item={item as FeedItem} token={token} />
+            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
+            {!loading && posts.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет постов</p>}
+            {posts.map((item, i) => (
+                <FeedPost key={item.id ?? i} item={item} token={token} />
             ))}
+            {hasMore && !loading && posts.length > 0 && (
+                <button
+                    onClick={loadMore}
+                    style={{
+                        width: '100%', padding: '0.6rem', background: 'none',
+                        border: '1px solid #333', borderRadius: '0.4rem',
+                        color: '#555', cursor: 'pointer', fontSize: '0.75rem',
+                        letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '1rem',
+                    }}
+                >
+                    Загрузить ещё
+                </button>
+            )}
         </div>
     )
 }

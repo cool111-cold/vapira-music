@@ -6,7 +6,7 @@ import { PlayerTwo } from '../../components/player/player-two'
 
 const BASE = 'https://vapira.ru'
 
-type AdminTab = 'users' | 'tracks' | 'vinyls'
+type AdminTab = 'users' | 'tracks' | 'vinyls' | 'posts'
 
 interface AdminUser {
     id: string | number
@@ -38,7 +38,16 @@ const TrashIcon = () => (
     </svg>
 )
 
-type ReportType = 'tracks' | 'vinyl' | 'users'
+interface AdminPost {
+    id: number
+    text?: string | null
+    image_url?: string | null
+    track_id?: number | null
+    user_id?: number | null
+    created_at?: string | null
+}
+
+type ReportType = 'tracks' | 'vinyl' | 'users' | 'posts'
 
 const ReportsBadge = ({ token, type, id }: { token: string; type: ReportType; id: number | string }) => {
     const [count, setCount] = useState<number | null>(null)
@@ -428,6 +437,77 @@ const VinylsTab = ({ token }: { token: string }) => {
     )
 }
 
+const PostsTab = ({ token }: { token: string }) => {
+    const navigate = useNavigate()
+    const [posts, setPosts] = useState<AdminPost[]>([])
+    const [loading, setLoading] = useState(true)
+    const [deletingId, setDeletingId] = useState<number | null>(null)
+
+    useEffect(() => {
+        fetch(`${BASE}/admin/posts`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then(data => setPosts(Array.isArray(data) ? data : []))
+            .catch(() => setPosts([]))
+            .finally(() => setLoading(false))
+    }, [token])
+
+    const handleDelete = async (id: number) => {
+        if (deletingId !== null) return
+        setDeletingId(id)
+        try {
+            const res = await fetch(`${BASE}/admin/posts/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+            if (res.ok) setPosts(prev => prev.filter(p => p.id !== id))
+        } finally {
+            setDeletingId(null)
+        }
+    }
+
+    if (loading) return <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>
+    if (posts.length === 0) return <p style={{ color: '#555', fontSize: '0.875rem' }}>нет постов</p>
+
+    return (
+        <div>
+            <p style={{ color: '#555', fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                {posts.length} постов · сортировка по жалобам
+            </p>
+            {posts.map(p => (
+                <div key={p.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #1a1a1a' }}>
+                    {p.image_url && (
+                        <div style={{ width: 48, height: 48, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                            <img
+                                src={p.image_url.startsWith('http') ? p.image_url : `${BASE}${p.image_url}`}
+                                alt=""
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                        </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        {p.text && (
+                            <div style={{ color: '#fff', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.25rem' }}>
+                                {p.text}
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            {p.user_id && (
+                                <span
+                                    onClick={() => navigate(`/pages/users/${p.user_id}`)}
+                                    style={{ color: '#555', fontSize: '0.7rem', cursor: 'pointer', textDecoration: 'underline' }}
+                                >
+                                    user #{p.user_id}
+                                </span>
+                            )}
+                            {p.track_id && <span style={{ color: '#444', fontSize: '0.7rem' }}>трек #{p.track_id}</span>}
+                            <span style={{ color: '#2a2a2a', fontSize: '0.7rem' }}>#{p.id}</span>
+                        </div>
+                    </div>
+                    <ReportsBadge token={token} type="posts" id={p.id} />
+                    <DeleteBtn onConfirm={() => handleDelete(p.id)} disabled={deletingId === p.id} />
+                </div>
+            ))}
+        </div>
+    )
+}
+
 export const AdminPage = () => {
     const { token, user, logout } = useAuth()
     const navigate = useNavigate()
@@ -484,11 +564,13 @@ export const AdminPage = () => {
                     <TabBtn active={tab === 'users'} onClick={() => setTab('users')} label="Пользователи" />
                     <TabBtn active={tab === 'tracks'} onClick={() => setTab('tracks')} label="Треки" />
                     <TabBtn active={tab === 'vinyls'} onClick={() => setTab('vinyls')} label="Пластинки" />
+                    <TabBtn active={tab === 'posts'} onClick={() => setTab('posts')} label="Посты" />
                 </div>
 
                 {tab === 'users' && <UsersTab token={token} currentUserId={user.id} />}
                 {tab === 'tracks' && <TracksTab token={token} />}
                 {tab === 'vinyls' && <VinylsTab token={token} />}
+                {tab === 'posts' && <PostsTab token={token} />}
             </div>
         </div>
     )
