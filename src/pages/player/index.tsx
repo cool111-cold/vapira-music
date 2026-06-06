@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/auth-context';
 import { useAudioPlayer } from '../../context/audio-context';
@@ -111,6 +112,14 @@ const NAV_ICONS = {
     ),
 };
 
+const DotsIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.0001 7.1999C10.6746 7.1999 9.6001 6.12539 9.6001 4.7999C9.6001 3.47442 10.6746 2.3999 12.0001 2.3999C13.3256 2.3999 14.4001 3.47442 14.4001 4.7999C14.4001 6.12539 13.3256 7.1999 12.0001 7.1999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 14.3999C10.6746 14.3999 9.6001 13.3254 9.6001 11.9999C9.6001 10.6744 10.6746 9.5999 12.0001 9.5999C13.3256 9.5999 14.4001 10.6744 14.4001 11.9999C14.4001 13.3254 13.3256 14.3999 12.0001 14.3999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 21.5999C10.6746 21.5999 9.6001 20.5254 9.6001 19.1999C9.6001 17.8744 10.6746 16.7999 12.0001 16.7999C13.3256 16.7999 14.4001 17.8744 14.4001 19.1999C14.4001 20.5254 13.3256 21.5999 12.0001 21.5999Z" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+)
+
 const NavBtn = ({ path, children }: { path: string; children: React.ReactNode }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -146,11 +155,16 @@ interface ApiPost {
     id: number;
     text?: string | null;
     image_url?: string | null;
+    video_url?: string | null;
     track_id?: number | null;
     vinyl_id?: number | null;
     user_id?: number | null;
     author_id?: number | null;
     time_code?: number | null;
+    likes_count?: number | null;
+    is_liked?: boolean | null;
+    is_reposted?: boolean | null;
+    reposted_by_user_id?: number | null;
 }
 
 interface FeedItem {
@@ -163,26 +177,35 @@ interface FeedItem {
     video: string | null;
     text: string;
     timeCode?: number | null;
+    likesCount: number;
+    isLiked: boolean;
+    isReposted: boolean;
+    repostedByUserId?: number | null;
 }
 
 const mapApiPost = (p: ApiPost): FeedItem => ({
     id: p.id,
-    type: p.image_url ? 'image' : 'text',
+    type: p.image_url ? 'image' : p.video_url ? 'video' : 'text',
     track_id: p.track_id ?? 0,
     autor_id: p.user_id ?? p.author_id ?? 0,
     vinyl_id: p.vinyl_id ?? null,
     image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : `${BASE_URL}${p.image_url}`) : null,
-    video: null,
+    video: p.video_url ? (p.video_url.startsWith('http') ? p.video_url : `${BASE_URL}${p.video_url}`) : null,
     text: p.text ?? '',
     timeCode: p.time_code ?? null,
+    likesCount: p.likes_count ?? 0,
+    isLiked: p.is_liked ?? false,
+    isReposted: p.is_reposted ?? false,
+    repostedByUserId: p.reposted_by_user_id ?? null,
 });
 
 const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null }) => {
+    const navigate = useNavigate();
+
     const isMultiImage = Array.isArray(item.image);
     const isSingleImage = typeof item.image === 'string' && !!item.image;
     const isVideoFile = !!item.video && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(item.video);
     const isGif = !!item.video && !isVideoFile;
-    const navigate = useNavigate();
     const DEFAULT_AVATAR = '/images/ava.jpg'
 
     const hasMedia = isMultiImage || isSingleImage || isVideoFile || isGif;
@@ -276,6 +299,7 @@ const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null 
                     {item.text}
                 </div>
             )}
+
         </div>
     );
 };
@@ -319,12 +343,36 @@ export const PlayerScene = () => {
     const feedPostsHasMoreRef = useRef(true);
     const [feedAuthor, setFeedAuthor] = useState<FeedAuthor | null>(null);
 
+    const [postLiked, setPostLiked] = useState(false);
+    const [postLikesCount, setPostLikesCount] = useState(0);
+    const [postReposted, setPostReposted] = useState(false);
+    const [postLikeLoading, setPostLikeLoading] = useState(false);
+    const [postRepostLoading, setPostRepostLoading] = useState(false);
+
+    const [dotsMenuOpen, setDotsMenuOpen] = useState(false);
+    const [dotsMenuPos, setDotsMenuPos] = useState({ x: 0, y: 0 });
+    const dotsRef = useRef<HTMLButtonElement>(null);
+    const dotsMenuRef = useRef<HTMLDivElement>(null);
+
     const [vinylTab, setVinylTab] = useState<{ id: number; name: string; videoCover: string | null } | null>(null);
     const [vinylTabActive, setVinylTabActive] = useState(false);
 
     const [showLyrics, setShowLyrics] = useState(false);
     const [showVolume, setShowVolume] = useState(false);
     const volumeRef = useRef<HTMLDivElement>(null);
+
+    // Close dots menu on outside click
+    useEffect(() => {
+        if (!dotsMenuOpen) return;
+        const handler = (e: MouseEvent) => {
+            const target = e.target as Node;
+            const insideTrigger = dotsRef.current?.contains(target);
+            const insideMenu = dotsMenuRef.current?.contains(target);
+            if (!insideTrigger && !insideMenu) setDotsMenuOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [dotsMenuOpen]);
 
     // Close volume popup on outside click
     useEffect(() => {
@@ -480,6 +528,67 @@ export const PlayerScene = () => {
             .then(data => setFeedAuthor(data))
             .catch(() => setFeedAuthor(null));
     }, [currentAutorId, token]);
+
+    const currentPostId = feedMode === 'feed' ? feedItems[feedItemIndex]?.id : undefined;
+
+    useEffect(() => {
+        const item = feedItems[feedItemIndex];
+        if (!item) { setPostLiked(false); setPostLikesCount(0); setPostReposted(false); return; }
+        setPostLiked(item.isLiked);
+        setPostLikesCount(item.likesCount);
+        setPostReposted(item.isReposted);
+    }, [currentPostId]);
+
+    const handlePostLike = useCallback(async () => {
+        const item = feedItemsRef.current[feedItemIndexRef.current];
+        if (!item?.id || !token || postLikeLoading) return;
+        setPostLikeLoading(true);
+        try {
+            if (postLiked) {
+                await fetch(`${BASE_URL}/posts/${item.id}/like`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                setPostLiked(false);
+                setPostLikesCount(c => Math.max(0, c - 1));
+            } else {
+                await fetch(`${BASE_URL}/posts/${item.id}/like`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                setPostLiked(true);
+                setPostLikesCount(c => c + 1);
+            }
+        } finally {
+            setPostLikeLoading(false);
+        }
+    }, [token, postLiked, postLikeLoading]);
+
+    const handlePostRepost = useCallback(async () => {
+        const item = feedItemsRef.current[feedItemIndexRef.current];
+        if (!item?.id || !token || postRepostLoading) return;
+        setPostRepostLoading(true);
+        try {
+            if (postReposted) {
+                await fetch(`${BASE_URL}/posts/${item.id}/repost`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                setPostReposted(false);
+            } else {
+                await fetch(`${BASE_URL}/posts/${item.id}/repost`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+                setPostReposted(true);
+            }
+        } finally {
+            setPostRepostLoading(false);
+        }
+    }, [token, postReposted, postRepostLoading]);
+
+    const handlePostShare = useCallback(() => {
+        const item = feedItemsRef.current[feedItemIndexRef.current];
+        if (!item?.id) return;
+        navigator.clipboard.writeText(`${window.location.origin}/pages/posts/${item.id}`);
+    }, []);
+
+    const handlePostReport = useCallback(async () => {
+        const item = feedItemsRef.current[feedItemIndexRef.current];
+        if (!item?.id || !token) return;
+        await fetch(`${BASE_URL}/posts/${item.id}/report`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+    }, [token]);
 
     const loadVinylTracks = useCallback(async (vinylId: number) => {
         if (feedLoadingRef.current) return;
@@ -792,7 +901,49 @@ export const PlayerScene = () => {
                 pointerEvents: isFeedMode ? 'auto' : 'none',
             }}>
                 {isFeedMode && feedItems[feedItemIndex] ? (
-                    <FeedCard item={feedItems[feedItemIndex]} author={feedAuthor} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <FeedCard item={feedItems[feedItemIndex]} author={feedAuthor} />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, alignSelf: 'flex-end', paddingBottom: 12}}>
+                            <button
+                                onClick={handlePostLike}
+                                disabled={postLikeLoading}
+                                style={{
+                                    background: 'none', border: 'none',
+                                    cursor: postLikeLoading ? 'default' : 'pointer',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                                    color: postLiked ? '#FD5E5E' : 'rgba(255,255,255,0.65)',
+                                    padding: 0, transition: 'color 0.15s',
+                                }}
+                            >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill={postLiked ? 'currentColor' : 'none'}>
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                {postLikesCount > 0 && (
+                                    <span style={{ fontSize: '0.65rem', letterSpacing: '0.04em' }}>{postLikesCount}</span>
+                                )}
+                            </button>
+                            <button
+                                ref={dotsRef}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    if (dotsRef.current) {
+                                        const rect = dotsRef.current.getBoundingClientRect();
+                                        setDotsMenuPos({ x: rect.right, y: rect.top });
+                                    }
+                                    setDotsMenuOpen(v => !v);
+                                }}
+                                style={{
+                                    background: 'none', border: 'none',
+                                    cursor: 'pointer', padding: 0,
+                                    color: dotsMenuOpen ? '#fff' : 'rgba(255,255,255,0.65)',
+                                    display: 'flex', alignItems: 'center',
+                                    transition: 'color 0.15s',
+                                }}
+                            >
+                                <DotsIcon />
+                            </button>
+                        </div>
+                    </div>
                 ) : !isFeedMode && currentTrack ? (
                     <>
                         <div style={{
@@ -1149,6 +1300,73 @@ export const PlayerScene = () => {
                 </div>
             </div>
 
+
+            {dotsMenuOpen && createPortal(
+                <div
+                    ref={dotsMenuRef}
+                    style={{
+                        position: 'fixed',
+                        top: dotsMenuPos.y,
+                        left: dotsMenuPos.x - 172,
+                        zIndex: 1000,
+                        background: 'rgba(20,20,20,0.97)',
+                        backdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 12,
+                        padding: '6px 0',
+                        minWidth: 172,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+                    }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    <button
+                        onClick={() => { handlePostRepost(); }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            width: '100%', background: 'none', border: 'none',
+                            color: postReposted ? '#4ade80' : 'rgba(255,255,255,0.85)',
+                            padding: '10px 16px', cursor: 'pointer', fontSize: '0.82rem',
+                            textAlign: 'left',
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M17 1L21 5L17 9M21 5H8C5.79086 5 4 6.79086 4 9V11M7 23L3 19L7 15M3 19H16C18.2091 19 20 17.2091 20 15V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {postReposted ? 'Убрать репост' : 'Репост'}
+                    </button>
+                    <button
+                        onClick={() => { handlePostShare(); setDotsMenuOpen(false); }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            width: '100%', background: 'none', border: 'none',
+                            color: 'rgba(255,255,255,0.85)',
+                            padding: '10px 16px', cursor: 'pointer', fontSize: '0.82rem',
+                            textAlign: 'left',
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M7.37851 10.1907L5.14505 12.4242C4.31092 13.2583 3.83124 14.3933 3.84001 15.5861C3.84877 16.7789 4.31796 17.9208 5.19167 18.7675C6.03836 19.6413 7.18048 20.1104 8.3731 20.1192C9.59293 20.1282 10.701 19.6755 11.5352 18.8414L13.7687 16.6079M16.6215 13.8097L18.8549 11.5762C19.6891 10.7421 20.1688 9.60711 20.16 8.4143C20.1512 7.22149 19.682 6.0796 18.8083 5.23287C17.9618 4.38638 16.8199 3.91717 15.6271 3.90841C14.4343 3.89964 13.2992 4.35209 12.465 5.18625L10.2315 7.4197M8.6131 15.3274L15.3135 8.62701" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Поделиться
+                    </button>
+                    <button
+                        onClick={() => { handlePostReport(); setDotsMenuOpen(false); }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            width: '100%', background: 'none', border: 'none',
+                            color: 'rgba(255,100,100,0.85)',
+                            padding: '10px 16px', cursor: 'pointer', fontSize: '0.82rem',
+                            textAlign: 'left',
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18C1.64 18.31 1.55 18.66 1.55 19.01C1.55 19.36 1.64 19.71 1.82 20.02C2 20.33 2.26 20.58 2.57 20.76C2.88 20.94 3.23 21.04 3.59 21.04H20.42C20.78 21.04 21.13 20.94 21.44 20.76C21.75 20.58 22.01 20.33 22.19 20.02C22.37 19.71 22.46 19.36 22.46 19.01C22.46 18.66 22.37 18.31 22.19 18L13.71 3.86C13.53 3.55 13.27 3.3 12.96 3.12C12.65 2.94 12.3 2.85 11.95 2.85C11.6 2.85 11.25 2.94 10.94 3.12C10.63 3.3 10.47 3.55 10.29 3.86Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Пожаловаться
+                    </button>
+                </div>,
+                document.body
+            )}
 
             <style>{`
                 @keyframes spinRecord {

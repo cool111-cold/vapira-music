@@ -226,7 +226,7 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
         setSubmitting(true)
         setError('')
         try {
-            const type = videoFile ? 'video' : images.length > 0 ? 'images' : 'text'
+            const type = videoFile ? 'images' : images.length > 0 ? 'images' : 'text'
 
             const fd = new FormData()
             fd.append('type', type)

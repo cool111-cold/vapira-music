@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { PlayerTwo } from '../../components/player/player-two'
 import { useAuth, UserUpdate } from '../../context/auth-context'
@@ -12,7 +13,7 @@ const BASE = 'https://vapira.ru'
 
 
 type MainTab = 'feed' | 'tracks' | 'vinyls' | 'social' | null
-type SubTab = 'saved' | 'uploaded' | 'subscriptions' | 'subscribers'
+type SubTab = 'saved' | 'uploaded' | 'subscriptions' | 'subscribers' | 'liked'
 
 interface SubscriptionUser {
     id: string
@@ -730,15 +731,27 @@ const AdminCheckIcon = () => (
     </svg>
 )
 
+const DotsIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12.0001 7.1999C10.6746 7.1999 9.6001 6.12539 9.6001 4.7999C9.6001 3.47442 10.6746 2.3999 12.0001 2.3999C13.3256 2.3999 14.4001 3.47442 14.4001 4.7999C14.4001 6.12539 13.3256 7.1999 12.0001 7.1999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 14.3999C10.6746 14.3999 9.6001 13.3254 9.6001 11.9999C9.6001 10.6744 10.6746 9.5999 12.0001 9.5999C13.3256 9.5999 14.4001 10.6744 14.4001 11.9999C14.4001 13.3254 13.3256 14.3999 12.0001 14.3999Z" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12.0001 21.5999C10.6746 21.5999 9.6001 20.5254 9.6001 19.1999C9.6001 17.8744 10.6746 16.7999 12.0001 16.7999C13.3256 16.7999 14.4001 17.8744 14.4001 19.1999C14.4001 20.5254 13.3256 21.5999 12.0001 21.5999Z" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+)
+
 interface ApiPost {
     id: number;
     text?: string | null;
     image_url?: string | null;
+    video_url?: string | null;
     track_id?: number | null;
     vinyl_id?: number | null;
     user_id?: number | null;
     author_id?: number | null;
     time_code?: number | null;
+    likes_count?: number | null;
+    is_liked?: boolean | null;
+    is_reposted?: boolean | null;
 }
 
 interface FeedItem {
@@ -751,25 +764,62 @@ interface FeedItem {
     video: string | null;
     text: string;
     timeCode?: number | null;
+    likesCount: number;
+    isLiked: boolean;
+    isReposted: boolean;
 }
 
 const mapApiPost = (p: ApiPost): FeedItem => ({
     id: p.id,
-    type: p.image_url ? 'image' : 'text',
+    type: p.image_url ? 'image' : p.video_url ? 'video' : 'text',
     track_id: p.track_id ?? 0,
     autor_id: p.user_id ?? p.author_id ?? 0,
     vinyl_id: p.vinyl_id ?? null,
     image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : `${BASE}${p.image_url}`) : null,
-    video: null,
+    video: p.video_url ? (p.video_url.startsWith('http') ? p.video_url : `${BASE}${p.video_url}`) : null,
     text: p.text ?? '',
     timeCode: p.time_code ?? null,
+    likesCount: p.likes_count ?? 0,
+    isLiked: p.is_liked ?? false,
+    isReposted: p.is_reposted ?? false,
 });
 
-const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
+const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedItem; token: string; onDelete?: (id: number) => void; onEdited?: (id: number, text: string) => void; readOnly?: boolean }) => {
     const navigate = useNavigate()
+    const { user } = useAuth()
     const { seekAfterLoad } = useAudioPlayer()
     const [track, setTrack] = useState<LibTrack | null>(null)
     const [author, setAuthor] = useState<{ id: number; name?: string; email?: string; avatar_url?: string } | null>(null)
+    const [copied, setCopied] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
+    const [editText, setEditText] = useState(item.text)
+    const [saving, setSaving] = useState(false)
+    const [liked, setLiked] = useState(item.isLiked)
+    const [likesCount, setLikesCount] = useState(item.likesCount)
+    const [likeLoading, setLikeLoading] = useState(false)
+    const [reposted, setReposted] = useState(item.isReposted)
+    const [repostLoading, setRepostLoading] = useState(false)
+    const [reporting, setReporting] = useState(false)
+    const [reported, setReported] = useState(false)
+    const [menuOpen, setMenuOpen] = useState(false)
+    const [menuPos, setMenuPos] = useState({ x: 0, y: 0 })
+    const dotsRef = useRef<HTMLButtonElement>(null)
+    const dotsMenuRef = useRef<HTMLDivElement>(null)
+
+    const canRepost = !!user && String((user as any).id) !== String(item.autor_id)
+
+    useEffect(() => {
+        if (!menuOpen) return
+        const handler = (e: MouseEvent) => {
+            const target = e.target as Node
+            if (!dotsRef.current?.contains(target) && !dotsMenuRef.current?.contains(target)) {
+                setMenuOpen(false)
+            }
+        }
+        document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [menuOpen])
 
     useEffect(() => {
         if (!item.track_id) return
@@ -789,10 +839,104 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
             .catch(() => {})
     }, [item.autor_id, token])
 
+    useEffect(() => { setEditText(item.text) }, [item.text])
+
+    const handleLike = async () => {
+        if (!item.id || likeLoading) return
+        setLikeLoading(true)
+        try {
+            if (liked) {
+                await fetch(`${BASE}/posts/${item.id}/like`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+                setLiked(false)
+                setLikesCount(c => Math.max(0, c - 1))
+            } else {
+                await fetch(`${BASE}/posts/${item.id}/like`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+                setLiked(true)
+                setLikesCount(c => c + 1)
+            }
+        } finally {
+            setLikeLoading(false)
+        }
+    }
+
+    const handleRepost = async () => {
+        if (!item.id || repostLoading || !canRepost) return
+        setRepostLoading(true)
+        try {
+            if (reposted) {
+                await fetch(`${BASE}/posts/${item.id}/repost`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+                setReposted(false)
+            } else {
+                await fetch(`${BASE}/posts/${item.id}/repost`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+                setReposted(true)
+            }
+        } finally {
+            setRepostLoading(false)
+        }
+    }
+
+    const handleShare = () => {
+        navigator.clipboard.writeText(`${window.location.origin}/pages/posts/${item.id}`)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+    }
+
+    const handleReport = async () => {
+        if (!item.id || reporting || reported) return
+        setReporting(true)
+        try {
+            await fetch(`${BASE}/reports/posts/${item.id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+            setReported(true)
+        } finally {
+            setReporting(false)
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!item.id || deleting) return
+        setDeleting(true)
+        try {
+            const res = await fetch(`${BASE}/posts/${item.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (res.ok) onDelete?.(item.id)
+        } finally {
+            setDeleting(false)
+        }
+    }
+
+    const handleSaveEdit = async () => {
+        if (!item.id || saving) return
+        setSaving(true)
+        try {
+            const res = await fetch(`${BASE}/posts/${item.id}`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: editText }),
+            })
+            if (res.ok) {
+                onEdited?.(item.id, editText)
+                setIsEditing(false)
+            }
+        } finally {
+            setSaving(false)
+        }
+    }
+
     const isMultiImage = Array.isArray(item.image)
     const isSingleImage = typeof item.image === 'string' && !!item.image
     const isVideoFile = !!item.video && /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(item.video)
     const isGif = !!item.video && !isVideoFile
+
+    const actBtnStyle = (color: string, disabled?: boolean): React.CSSProperties => ({
+        background: 'none', border: 'none', color,
+        cursor: disabled ? 'default' : 'pointer',
+        padding: '0.3rem 0.5rem', fontSize: '0.75rem',
+        display: 'flex', alignItems: 'center', gap: 4,
+        borderRadius: '0.3rem', opacity: disabled ? 0.5 : 1,
+        letterSpacing: '0.03em',
+    })
 
     return (
         <div style={{ borderBottom: '1px solid #1a1a1a', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
@@ -814,11 +958,41 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
                 </span>
             </div>
 
-            {item.text && (
+            {isEditing ? (
+                <div style={{ marginBottom: 12 }}>
+                    <textarea
+                        value={editText}
+                        onChange={e => setEditText(e.target.value)}
+                        autoFocus
+                        rows={3}
+                        style={{
+                            width: '100%', background: '#111', border: '1px solid #333',
+                            borderRadius: '0.4rem', color: '#fff', padding: '0.6rem',
+                            fontSize: '0.875rem', lineHeight: 1.6, resize: 'vertical',
+                            fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+                        }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+                        <button
+                            onClick={() => { setIsEditing(false); setEditText(item.text) }}
+                            style={{ background: 'none', border: '1px solid #333', borderRadius: '0.4rem', color: '#888', fontSize: '0.75rem', cursor: 'pointer', padding: '0.35rem 0.75rem' }}
+                        >
+                            Отмена
+                        </button>
+                        <button
+                            onClick={handleSaveEdit}
+                            disabled={saving}
+                            style={{ background: '#fff', border: 'none', borderRadius: '0.4rem', color: '#000', fontSize: '0.75rem', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', padding: '0.35rem 0.75rem', opacity: saving ? 0.6 : 1 }}
+                        >
+                            {saving ? 'Сохранение...' : 'Сохранить'}
+                        </button>
+                    </div>
+                </div>
+            ) : item.text ? (
                 <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.875rem', lineHeight: 1.6, margin: '0 0 12px' }}>
                     {item.text}
                 </p>
-            )}
+            ) : null}
 
             {isMultiImage && (
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min((item.image as string[]).length, 3)}, 1fr)`, gap: 2, borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
@@ -841,6 +1015,140 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
                 <div onClick={() => seekAfterLoad(item.timeCode ?? 0)}>
                     <TrackRow track={track} />
                 </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 2, marginTop: 10, alignItems: 'center' }}>
+                <button
+                    onClick={handleLike}
+                    disabled={likeLoading}
+                    style={actBtnStyle(liked ? '#FD5E5E' : '#555', likeLoading)}
+                    onMouseEnter={e => { if (!likeLoading) e.currentTarget.style.color = liked ? '#FD5E5E' : '#fff' }}
+                    onMouseLeave={e => { if (!likeLoading) e.currentTarget.style.color = liked ? '#FD5E5E' : '#555' }}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'}>
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {likesCount > 0 ? likesCount : ''}
+                </button>
+                {canRepost && (
+                    <button
+                        onClick={handleRepost}
+                        disabled={repostLoading}
+                        style={actBtnStyle(reposted ? '#4ade80' : '#555', repostLoading)}
+                        onMouseEnter={e => { if (!repostLoading) e.currentTarget.style.color = reposted ? '#4ade80' : '#fff' }}
+                        onMouseLeave={e => { if (!repostLoading) e.currentTarget.style.color = reposted ? '#4ade80' : '#555' }}
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                            <path d="M17 1L21 5L17 9M21 5H8C5.79086 5 4 6.79086 4 9V11M7 23L3 19L7 15M3 19H16C18.2091 19 20 17.2091 20 15V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {reposted ? 'Репостнуто' : 'Репост'}
+                    </button>
+                )}
+                <button
+                    ref={dotsRef}
+                    onClick={e => {
+                        e.stopPropagation()
+                        if (dotsRef.current) {
+                            const rect = dotsRef.current.getBoundingClientRect()
+                            setMenuPos({ x: rect.right, y: rect.bottom })
+                        }
+                        setMenuOpen(v => !v)
+                    }}
+                    style={actBtnStyle(menuOpen ? '#fff' : '#555')}
+                    onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.color = '#fff' }}
+                    onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = menuOpen ? '#fff' : '#555' }}
+                >
+                    <DotsIcon />
+                </button>
+            </div>
+
+            {menuOpen && createPortal(
+                <div
+                    ref={dotsMenuRef}
+                    style={{
+                        position: 'fixed',
+                        top: menuPos.y + 4,
+                        left: menuPos.x - 172,
+                        zIndex: 1000,
+                        background: 'rgba(20,20,20,0.97)',
+                        backdropFilter: 'blur(16px)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 12,
+                        padding: '6px 0',
+                        minWidth: 172,
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+                    }}
+                >
+                    <button
+                        onClick={() => { handleShare(); setMenuOpen(false) }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            width: '100%', background: 'none', border: 'none',
+                            color: copied ? '#4ade80' : 'rgba(255,255,255,0.85)',
+                            padding: '10px 16px', cursor: 'pointer',
+                            fontSize: '0.82rem', textAlign: 'left',
+                        }}
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <path d="M7.37851 10.1907L5.14505 12.4242C4.31092 13.2583 3.83124 14.3933 3.84001 15.5861C3.84877 16.7789 4.31796 17.9208 5.19167 18.7675C6.03836 19.6413 7.18048 20.1104 8.3731 20.1192C9.59293 20.1282 10.701 19.6755 11.5352 18.8414L13.7687 16.6079M16.6215 13.8097L18.8549 11.5762C19.6891 10.7421 20.1688 9.60711 20.16 8.4143C20.1512 7.22149 19.682 6.0796 18.8083 5.23287C17.9618 4.38638 16.8199 3.91717 15.6271 3.90841C14.4343 3.89964 13.2992 4.35209 12.465 5.18625L10.2315 7.4197M8.6131 15.3274L15.3135 8.62701" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Поделиться
+                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={() => { setIsEditing(true); setMenuOpen(false) }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                width: '100%', background: 'none', border: 'none',
+                                color: 'rgba(255,255,255,0.85)',
+                                padding: '10px 16px', cursor: 'pointer',
+                                fontSize: '0.82rem', textAlign: 'left',
+                            }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M13.7999 19.5514H19.7999M4.19995 19.5514L8.56594 18.6717C8.79771 18.625 9.01053 18.5109 9.17767 18.3437L18.9513 8.56461C19.4199 8.09576 19.4196 7.33577 18.9506 6.86731L16.8802 4.79923C16.4114 4.33097 15.6518 4.33129 15.1834 4.79995L5.40871 14.58C5.2419 14.7469 5.128 14.9593 5.08125 15.1906L4.19995 19.5514Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            Редактировать
+                        </button>
+                    )}
+                    {!readOnly && (
+                        <button
+                            onClick={() => { handleDelete(); setMenuOpen(false) }}
+                            disabled={deleting}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                width: '100%', background: 'none', border: 'none',
+                                color: 'rgba(255,100,100,0.85)',
+                                padding: '10px 16px', cursor: deleting ? 'default' : 'pointer',
+                                fontSize: '0.82rem', textAlign: 'left', opacity: deleting ? 0.5 : 1,
+                            }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                            {deleting ? 'Удаление...' : 'Удалить'}
+                        </button>
+                    )}
+                    {readOnly && (
+                        <button
+                            onClick={() => { handleReport(); setMenuOpen(false) }}
+                            disabled={reporting || reported}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: 10,
+                                width: '100%', background: 'none', border: 'none',
+                                color: reported ? '#4ade80' : 'rgba(255,100,100,0.85)',
+                                padding: '10px 16px', cursor: reporting || reported ? 'default' : 'pointer',
+                                fontSize: '0.82rem', textAlign: 'left', opacity: reporting ? 0.5 : 1,
+                            }}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18C1.64 18.31 1.55 18.66 1.55 19.01C1.55 19.36 1.64 19.71 1.82 20.02C2 20.33 2.26 20.58 2.57 20.76C2.88 20.94 3.23 21.04 3.59 21.04H20.42C20.78 21.04 21.13 20.94 21.44 20.76C21.75 20.58 22.01 20.33 22.19 20.02C22.37 19.71 22.46 19.36 22.46 19.01C22.46 18.66 22.37 18.31 22.19 18L13.71 3.86C13.53 3.55 13.27 3.3 12.96 3.12C12.65 2.94 12.3 2.85 11.95 2.85C11.6 2.85 11.25 2.94 10.94 3.12C10.63 3.3 10.47 3.55 10.29 3.86Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                            {reported ? 'Жалоба отправлена' : reporting ? 'Отправка...' : 'Пожаловаться'}
+                        </button>
+                    )}
+                </div>,
+                document.body
             )}
         </div>
     )
@@ -880,12 +1188,71 @@ const FeedPostsList = ({ token }: { token: string }) => {
             .catch(() => {})
     }
 
+    const handleDelete = (id: number) => setPosts(prev => prev.filter(p => p.id !== id))
+    const handleEdited = (id: number, text: string) => setPosts(prev => prev.map(p => p.id === id ? { ...p, text } : p))
+
     return (
         <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
             {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
             {!loading && posts.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет постов</p>}
             {posts.map((item, i) => (
-                <FeedPost key={item.id ?? i} item={item} token={token} />
+                <FeedPost key={item.id ?? i} item={item} token={token} onDelete={handleDelete} onEdited={handleEdited} />
+            ))}
+            {hasMore && !loading && posts.length > 0 && (
+                <button
+                    onClick={loadMore}
+                    style={{
+                        width: '100%', padding: '0.6rem', background: 'none',
+                        border: '1px solid #333', borderRadius: '0.4rem',
+                        color: '#555', cursor: 'pointer', fontSize: '0.75rem',
+                        letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '1rem',
+                    }}
+                >
+                    Загрузить ещё
+                </button>
+            )}
+        </div>
+    )
+}
+
+const LikedPostsList = ({ token }: { token: string }) => {
+    const [posts, setPosts] = useState<FeedItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [hasMore, setHasMore] = useState(true)
+    const [skip, setSkip] = useState(0)
+
+    useEffect(() => {
+        setLoading(true)
+        fetch(`${BASE}/posts/liked?skip=0&limit=${POSTS_LIMIT}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then((data: ApiPost[]) => {
+                if (!Array.isArray(data)) return
+                setPosts(data.map(mapApiPost))
+                setSkip(data.length)
+                if (data.length < POSTS_LIMIT) setHasMore(false)
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false))
+    }, [token])
+
+    const loadMore = () => {
+        fetch(`${BASE}/posts/liked?skip=${skip}&limit=${POSTS_LIMIT}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then((data: ApiPost[]) => {
+                if (!Array.isArray(data)) return
+                setPosts(prev => [...prev, ...data.map(mapApiPost)])
+                setSkip(s => s + data.length)
+                if (data.length < POSTS_LIMIT) setHasMore(false)
+            })
+            .catch(() => {})
+    }
+
+    return (
+        <div style={{ maxWidth: 520, margin: '0 auto' }}>
+            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
+            {!loading && posts.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет понравившихся постов</p>}
+            {posts.map((item, i) => (
+                <FeedPost key={item.id ?? i} item={item} token={token} readOnly />
             ))}
             {hasMore && !loading && posts.length > 0 && (
                 <button
@@ -982,7 +1349,9 @@ export const ProfilePage = () => {
             setMainTab(null)
         } else {
             setMainTab(tab)
-            setSubTab(tab === 'social' ? 'subscriptions' : 'saved')
+            if (tab === 'social') setSubTab('subscriptions')
+            else if (tab === 'feed') setSubTab('uploaded')
+            else setSubTab('saved')
         }
     }
 
@@ -1135,7 +1504,14 @@ export const ProfilePage = () => {
 
                     {/* Feed section */}
                     {mainTab === 'feed' && token && (
-                        <FeedPostsList token={token} />
+                        <div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                                <TabBtn active={subTab !== 'liked'} onClick={() => setSubTab('uploaded')} label="Мои посты" />
+                                <TabBtn active={subTab === 'liked'} onClick={() => setSubTab('liked')} label="Понравившиеся" />
+                            </div>
+                            {subTab !== 'liked' && <FeedPostsList token={token} />}
+                            {subTab === 'liked' && <LikedPostsList token={token} />}
+                        </div>
                     )}
 
                     {/* Tracks section */}
