@@ -236,6 +236,21 @@ export const AuthPage = () => {
     const { login, register } = useAuth();
     const navigate = useNavigate();
 
+    const testAuth = async ({emailTest, passwordTest}: {emailTest: string, passwordTest: string}) => {
+        await login(emailTest, passwordTest);
+        const token = localStorage.getItem('vapira_token');
+        if (token) {
+            const me = await fetch('https://vapira.ru/auth/me', {
+                headers: { Authorization: `Bearer ${token}` },
+            }).then(r => r.ok ? r.json() : null).catch(() => null);
+            if (me?.is_admin === 1) {
+                navigate('/pages/admin');
+                return;
+            }
+        }
+        navigate('/');
+    }
+
     const handleSubmit = async () => {
         setError('');
         setFieldErrors({});
@@ -433,6 +448,19 @@ export const AuthPage = () => {
                 >
                     {loading ? '...' : tab === 'login' ? 'войти' : 'зарегистрироваться'}
                 </button>
+                {process.env.NODE_ENV === 'development' && (
+                    <>
+                        <button onClick={() => testAuth({emailTest:'test@gmail.com', passwordTest: '123'})}>
+                            vadim
+                        </button>
+                        <button onClick={() => testAuth({emailTest: '1111', passwordTest: '1111'})}>
+                            1111
+                        </button>
+                        <button onClick={() => testAuth({emailTest: 'test2@gmail.com', passwordTest: 'Qwer123)'})}>
+                            test
+                        </button>
+                    </>
+                )}
             </div>
             <div ref={videoContainerRef} style={{width: '100%', height: '100%', borderRadius: 25, overflow: 'hidden', position: 'relative'}}>
                 <style>{`@keyframes slideUpIn{from{transform:translateY(105%)}to{transform:translateY(0)}}`}</style>
