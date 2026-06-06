@@ -471,9 +471,9 @@ const PostsTab = ({ token }: { token: string }) => {
                 {posts.length} постов · сортировка по жалобам
             </p>
             {posts.map(p => (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #1a1a1a' }}>
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 0', borderBottom: '1px solid #1a1a1a' }}>
                     {p.image_url && (
-                        <div style={{ width: 48, height: 48, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                        <div onClick={() => window.open(`${window.location.origin}/?postId=${p.id}`)} style={{ width: 48, height: 48, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
                             <img
                                 src={p.image_url.startsWith('http') ? p.image_url : `${BASE}${p.image_url}`}
                                 alt=""
@@ -481,7 +481,7 @@ const PostsTab = ({ token }: { token: string }) => {
                             />
                         </div>
                     )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div onClick={() => window.open(`${window.location.origin}/?postId=${p.id}`)} style={{ flex: 1, minWidth: 0 }}>
                         {p.text && (
                             <div style={{ color: '#fff', fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '0.25rem' }}>
                                 {p.text}

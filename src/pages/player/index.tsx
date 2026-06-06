@@ -144,14 +144,14 @@ const NavBtn = ({ path, children }: { path: string; children: React.ReactNode })
     );
 };
 
-interface FeedAuthor {
+export interface FeedAuthor {
     id: number;
     name?: string;
     email?: string;
     avatar_url?: string;
 }
 
-interface ApiPost {
+export interface ApiPost {
     id: number;
     text?: string | null;
     image_url?: string | null;
@@ -167,7 +167,7 @@ interface ApiPost {
     reposted_by_user_id?: number | null;
 }
 
-interface FeedItem {
+export interface FeedItem {
     id?: number;
     type: string;
     track_id: number;
@@ -183,7 +183,7 @@ interface FeedItem {
     repostedByUserId?: number | null;
 }
 
-const mapApiPost = (p: ApiPost): FeedItem => ({
+export const mapApiPost = (p: ApiPost): FeedItem => ({
     id: p.id,
     type: p.image_url ? 'image' : p.video_url ? 'video' : 'text',
     track_id: p.track_id ?? 0,
@@ -199,7 +199,7 @@ const mapApiPost = (p: ApiPost): FeedItem => ({
     repostedByUserId: p.reposted_by_user_id ?? null,
 });
 
-const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null }) => {
+export const FeedCard = ({ item, author }: { item: FeedItem; author: FeedAuthor | null }) => {
     const navigate = useNavigate();
 
     const isMultiImage = Array.isArray(item.image);
@@ -334,6 +334,7 @@ export const PlayerScene = () => {
     const feedHasMoreRef = useRef(true);
     const feedLoadingRef = useRef(false);
     const sharedTrackHandledRef = useRef(false);
+    const sharedPostHandledRef = useRef(false);
 
     const [feedItemIndex, setFeedItemIndex] = useState(0);
     const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
@@ -425,7 +426,7 @@ export const PlayerScene = () => {
         }
     }, [animate, prev, trackIndex]);
 
-    const loadPostsFeed = useCallback(async (skip: number) => {
+    const loadPostsFeed = useCallback(async (skip: number, prependItem?: FeedItem) => {
         if (feedLoadingRef.current) return;
         feedLoadingRef.current = true;
         if (skip === 0) setFeedLoading(true);
@@ -437,8 +438,15 @@ export const PlayerScene = () => {
             const data: ApiPost[] = await r.json();
             if (!Array.isArray(data)) return;
             const newItems = data.map(mapApiPost);
-            if (skip === 0) setFeedItems(newItems);
-            else setFeedItems(prev => [...prev, ...newItems]);
+            if (skip === 0) {
+                if (prependItem) {
+                    setFeedItems([prependItem, ...newItems.filter(i => i.id !== prependItem.id)]);
+                } else {
+                    setFeedItems(newItems);
+                }
+            } else {
+                setFeedItems(prev => [...prev, ...newItems]);
+            }
             feedPostsSkipRef.current = skip + data.length;
             if (data.length < FEED_LIMIT) feedPostsHasMoreRef.current = false;
         } catch {} finally {
@@ -578,7 +586,7 @@ export const PlayerScene = () => {
     const handlePostShare = useCallback(() => {
         const item = feedItemsRef.current[feedItemIndexRef.current];
         if (!item?.id) return;
-        navigator.clipboard.writeText(`${window.location.origin}/pages/posts/${item.id}`);
+        navigator.clipboard.writeText(`${window.location.origin}/?postId=${item.id}`);
     }, []);
 
     const handlePostReport = useCallback(async () => {
@@ -662,6 +670,25 @@ export const PlayerScene = () => {
         setVinylTabActive(true);
         loadVinylTracks(vinylTab.id);
     };
+
+    // Shared post via URL (?postId=...)
+    useEffect(() => {
+        const postId = searchParams.get('postId');
+        if (!postId || !token || sharedPostHandledRef.current) return;
+        sharedPostHandledRef.current = true;
+        fetch(`${BASE_URL}/posts/${postId}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : null)
+            .then((data: ApiPost | null) => {
+                if (!data) return;
+                const mapped = mapApiPost(data);
+                setFeedMode('feed');
+                setFeedItemIndex(0);
+                feedPostsSkipRef.current = 0;
+                feedPostsHasMoreRef.current = true;
+                loadPostsFeedRef.current(0, mapped);
+            })
+            .catch(() => {});
+    }, [token, searchParams]);
 
     // Shared track via URL
     useEffect(() => {

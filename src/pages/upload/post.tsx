@@ -123,19 +123,34 @@ const IconMusic = () => (
     </svg>
 )
 
-const PostComposer = ({ onClose }: { onClose: () => void }) => {
+interface PostComposerProps {
+    onClose: () => void
+    defaultText?: string
+    defaultTrack?: TrackResult | null
+    defaultTimeCode?: number | null
+    defaultImages?: string[]
+    defaultVideo?: string | null
+    editPostId?: number
+    onEdited?: (id: number, text: string) => void
+}
+
+const toAbsUrl = (url: string) => url.startsWith('http') ? url : `${BASE}${url}`
+
+const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited }: PostComposerProps) => {
     const { user, token } = useAuth()
     const [query, setQuery] = useState('')
     const [searchResults, setSearchResults] = useState<TrackResult[]>([])
     const [searchLoading, setSearchLoading] = useState(false)
-    const [selectedTrack, setSelectedTrack] = useState<TrackResult | null>(null)
+    const [selectedTrack, setSelectedTrack] = useState<TrackResult | null>(defaultTrack ?? null)
     const [showTrackPicker, setShowTrackPicker] = useState(false)
-    const [text, setText] = useState('')
+    const [text, setText] = useState(defaultText ?? '')
+    const [existingImages, setExistingImages] = useState<string[]>(defaultImages ?? [])
+    const [existingVideo, setExistingVideo] = useState<string | null>(defaultVideo ?? null)
     const [images, setImages] = useState<File[]>([])
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
     const [videoFile, setVideoFile] = useState<File | null>(null)
     const [videoPreview, setVideoPreview] = useState<string | null>(null)
-    const [timeCode, setTimeCode] = useState<number | null>(null)
+    const [timeCode, setTimeCode] = useState<number | null>(defaultTimeCode ?? null)
     const [seekSuggestion, setSeekSuggestion] = useState<number | null>(null)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
@@ -226,6 +241,27 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
         setSubmitting(true)
         setError('')
         try {
+            if (editPostId) {
+                const body: Record<string, any> = {}
+                if (text.trim()) body.text = text.trim()
+                if (selectedTrack) body.track_id = selectedTrack.id
+                if (timeCode !== null) body.time_code = timeCode
+                body.existing_images = existingImages
+                body.existing_video = existingVideo
+                const res = await fetch(`${BASE}/posts/${editPostId}`, {
+                    method: 'PATCH',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                })
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => null)
+                    throw new Error(errData?.detail ?? `Ошибка ${res.status}`)
+                }
+                onEdited?.(editPostId, text.trim())
+                onClose()
+                return
+            }
+
             const type = videoFile ? 'images' : images.length > 0 ? 'images' : 'text'
 
             const fd = new FormData()
@@ -253,7 +289,7 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
         }
     }
 
-    const canSubmit = !submitting && (text.trim().length > 0 || selectedTrack !== null || images.length > 0 || videoFile !== null)
+    const canSubmit = !submitting && (text.trim().length > 0 || selectedTrack !== null || images.length > 0 || videoFile !== null || existingImages.length > 0 || existingVideo !== null)
 
     const avatarInitial = user?.name ? user.name[0].toUpperCase() : '?'
 
@@ -296,7 +332,35 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
                 />
             </div>
 
-            {/* Image previews */}
+            {/* Existing images (edit mode) */}
+            {existingImages.length > 0 && (
+                <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: existingImages.length === 1 ? '1fr' : `repeat(${Math.min(existingImages.length, 3)}, 1fr)`,
+                    gap: 3,
+                    margin: '1rem 1.25rem 0',
+                    borderRadius: '0.625rem',
+                    overflow: 'hidden',
+                }}>
+                    {existingImages.map((src, i) => (
+                        <div key={i} style={{ position: 'relative', aspectRatio: existingImages.length === 1 ? '16/9' : '1' }}>
+                            <img src={toAbsUrl(src)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <button
+                                onClick={() => setExistingImages(prev => prev.filter((_, idx) => idx !== i))}
+                                style={{
+                                    position: 'absolute', top: 6, right: 6,
+                                    width: 24, height: 24, borderRadius: '50%',
+                                    background: 'rgba(0,0,0,0.75)', border: 'none',
+                                    color: '#fff', fontSize: '0.8rem', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >×</button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Image previews (new files) */}
             {imagePreviews.length > 0 && (
                 <div style={{
                     display: 'grid',
@@ -324,7 +388,24 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
                 </div>
             )}
 
-            {/* Video preview */}
+            {/* Existing video (edit mode) */}
+            {existingVideo && !videoFile && (
+                <div style={{ position: 'relative', margin: '1rem 1.25rem 0', borderRadius: '0.625rem', overflow: 'hidden' }}>
+                    <video src={toAbsUrl(existingVideo)} controls style={{ width: '100%', maxHeight: 260, display: 'block' }} />
+                    <button
+                        onClick={() => setExistingVideo(null)}
+                        style={{
+                            position: 'absolute', top: 8, right: 8,
+                            width: 28, height: 28, borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.75)', border: 'none',
+                            color: '#fff', fontSize: '1rem', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}
+                    >×</button>
+                </div>
+            )}
+
+            {/* Video preview (new file) */}
             {videoPreview && (
                 <div style={{ position: 'relative', margin: '1rem 1.25rem 0', borderRadius: '0.625rem', overflow: 'hidden' }}>
                     <video src={videoPreview} controls style={{ width: '100%', maxHeight: 260, display: 'block' }} />
@@ -578,7 +659,18 @@ const PostComposer = ({ onClose }: { onClose: () => void }) => {
     )
 }
 
-export const CreatePostModal = ({ onClose }: { onClose: () => void }) => {
+interface CreatePostModalProps {
+    onClose: () => void
+    defaultText?: string
+    defaultTrack?: TrackResult | null
+    defaultTimeCode?: number | null
+    defaultImages?: string[]
+    defaultVideo?: string | null
+    editPostId?: number
+    onEdited?: (id: number, text: string) => void
+}
+
+export const CreatePostModal = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited }: CreatePostModalProps) => {
     return (
         <div
             style={{
@@ -599,7 +691,7 @@ export const CreatePostModal = ({ onClose }: { onClose: () => void }) => {
                         color: '#fff', fontSize: '0.8rem',
                         letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 600,
                     }}>
-                        Новый пост
+                        {editPostId ? 'Редактировать пост' : 'Новый пост'}
                     </span>
                     <button
                         onClick={onClose}
@@ -610,7 +702,16 @@ export const CreatePostModal = ({ onClose }: { onClose: () => void }) => {
                         }}
                     >×</button>
                 </div>
-                <PostComposer onClose={onClose} />
+                <PostComposer
+                    onClose={onClose}
+                    defaultText={defaultText}
+                    defaultTrack={defaultTrack}
+                    defaultTimeCode={defaultTimeCode}
+                    defaultImages={defaultImages}
+                    defaultVideo={defaultVideo}
+                    editPostId={editPostId}
+                    onEdited={onEdited}
+                />
             </div>
         </div>
     )

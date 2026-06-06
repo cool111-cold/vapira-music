@@ -144,7 +144,7 @@ const FeedPost = ({ item, token }: { item: FeedItem; token: string }) => {
     }, [item.autor_id, token])
 
     const handleShare = () => {
-        navigator.clipboard.writeText(`${window.location.origin}/pages/posts/${item.id}`)
+        navigator.clipboard.writeText(`${window.location.origin}/?postId=${item.id}`);  
         setCopied(true)
         setTimeout(() => setCopied(false), 1500)
     }

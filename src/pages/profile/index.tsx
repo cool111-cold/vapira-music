@@ -804,6 +804,8 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
     const [reported, setReported] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
     const [menuPos, setMenuPos] = useState({ x: 0, y: 0 })
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    const [editModalOpen, setEditModalOpen] = useState(false)
     const dotsRef = useRef<HTMLButtonElement>(null)
     const dotsMenuRef = useRef<HTMLDivElement>(null)
 
@@ -815,6 +817,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
             const target = e.target as Node
             if (!dotsRef.current?.contains(target) && !dotsMenuRef.current?.contains(target)) {
                 setMenuOpen(false)
+                setConfirmDelete(false)
             }
         }
         document.addEventListener('mousedown', handler)
@@ -876,7 +879,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
     }
 
     const handleShare = () => {
-        navigator.clipboard.writeText(`${window.location.origin}/pages/posts/${item.id}`)
+        navigator.clipboard.writeText(`${window.location.origin}/?postId=${item.id}`);  
         setCopied(true)
         setTimeout(() => setCopied(false), 1500)
     }
@@ -1096,7 +1099,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                     </button>
                     {!readOnly && (
                         <button
-                            onClick={() => { setIsEditing(true); setMenuOpen(false) }}
+                            onClick={() => { setEditModalOpen(true); setMenuOpen(false) }}
                             style={{
                                 display: 'flex', alignItems: 'center', gap: 10,
                                 width: '100%', background: 'none', border: 'none',
@@ -1112,22 +1115,50 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                         </button>
                     )}
                     {!readOnly && (
-                        <button
-                            onClick={() => { handleDelete(); setMenuOpen(false) }}
-                            disabled={deleting}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: 10,
-                                width: '100%', background: 'none', border: 'none',
-                                color: 'rgba(255,100,100,0.85)',
-                                padding: '10px 16px', cursor: deleting ? 'default' : 'pointer',
-                                fontSize: '0.82rem', textAlign: 'left', opacity: deleting ? 0.5 : 1,
-                            }}
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                                <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            </svg>
-                            {deleting ? 'Удаление...' : 'Удалить'}
-                        </button>
+                        confirmDelete ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 16px' }}>
+                                <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)', flexGrow: 1 }}>Удалить пост?</span>
+                                <button
+                                    onClick={() => { handleDelete(); setMenuOpen(false); setConfirmDelete(false) }}
+                                    disabled={deleting}
+                                    style={{
+                                        background: 'none', border: 'none',
+                                        color: 'rgba(255,100,100,0.85)',
+                                        cursor: deleting ? 'default' : 'pointer',
+                                        fontSize: '0.82rem', padding: '4px 8px', opacity: deleting ? 0.5 : 1,
+                                    }}
+                                >
+                                    {deleting ? '...' : 'Да'}
+                                </button>
+                                <button
+                                    onClick={() => setConfirmDelete(false)}
+                                    style={{
+                                        background: 'none', border: 'none',
+                                        color: 'rgba(255,255,255,0.5)',
+                                        cursor: 'pointer',
+                                        fontSize: '0.82rem', padding: '4px 8px',
+                                    }}
+                                >
+                                    Нет
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setConfirmDelete(true)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    width: '100%', background: 'none', border: 'none',
+                                    color: 'rgba(255,100,100,0.85)',
+                                    padding: '10px 16px', cursor: 'pointer',
+                                    fontSize: '0.82rem', textAlign: 'left',
+                                }}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <path d="M4 6.17647H20M9 3H15M15.5 21H8.5C7.39543 21 6.5 20.0519 6.5 18.8824L6.0434 7.27937C6.01973 6.67783 6.47392 6.17647 7.04253 6.17647H16.9575C17.5261 6.17647 17.9803 6.67783 17.9566 7.27937L17.5 18.8824C17.5 20.0519 16.6046 21 15.5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                </svg>
+                                Удалить
+                            </button>
+                        )
                     )}
                     {readOnly && (
                         <button
@@ -1149,6 +1180,24 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                     )}
                 </div>,
                 document.body
+            )}
+            {editModalOpen && (
+                <CreatePostModal
+                    onClose={() => setEditModalOpen(false)}
+                    defaultText={item.text}
+                    defaultTrack={track ? {
+                        id: Number(track.id),
+                        title: track.title,
+                        artist: track.artist,
+                        avatar_url: track.cover || null,
+                        stream_url: track.src.startsWith(BASE) ? track.src.slice(BASE.length) : track.src,
+                    } : null}
+                    defaultTimeCode={item.timeCode}
+                    defaultImages={item.image ? (Array.isArray(item.image) ? item.image : [item.image]) : []}
+                    defaultVideo={item.video ?? null}
+                    editPostId={item.id}
+                    onEdited={(id, text) => { onEdited?.(id, text); setEditModalOpen(false) }}
+                />
             )}
         </div>
     )
@@ -1561,11 +1610,11 @@ export const ProfilePage = () => {
                 }
                 style={{
                     position: 'fixed',
-                    bottom: '1.5rem',
+                    bottom: isMobile ? '7.5rem' : '1.5rem',
                     right: '1.5rem',
                     zIndex: 50,
-                    width: 52,
-                    height: 52,
+                    width: isMobile ? 42 : 52,
+                    height: isMobile ? 42 : 52,
                     borderRadius: '50%',
                     background: '#fff',
                     border: 'none',
