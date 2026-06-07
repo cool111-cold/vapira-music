@@ -123,6 +123,8 @@ const IconMusic = () => (
     </svg>
 )
 
+export type PostEditedUpdates = { text: string; image: string | string[] | null; video: string | null; track_id: number; timeCode: number | null }
+
 interface PostComposerProps {
     onClose: () => void
     defaultText?: string
@@ -131,12 +133,13 @@ interface PostComposerProps {
     defaultImages?: string[]
     defaultVideo?: string | null
     editPostId?: number
-    onEdited?: (id: number, text: string) => void
+    onEdited?: (id: number, updates: PostEditedUpdates) => void
+    onCreated?: () => void
 }
 
 const toAbsUrl = (url: string) => url.startsWith('http') ? url : `${BASE}${url}`
 
-const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited }: PostComposerProps) => {
+const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited, onCreated }: PostComposerProps) => {
     const { user, token } = useAuth()
     const [query, setQuery] = useState('')
     const [searchResults, setSearchResults] = useState<TrackResult[]>([])
@@ -242,22 +245,36 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
         setError('')
         try {
             if (editPostId) {
-                const body: Record<string, any> = {}
-                if (text.trim()) body.text = text.trim()
-                if (selectedTrack) body.track_id = selectedTrack.id
-                if (timeCode !== null) body.time_code = timeCode
-                body.existing_images = existingImages
-                body.existing_video = existingVideo
+                const fd = new FormData()
+                if (text.trim()) fd.append('text', text.trim())
+                if (selectedTrack) fd.append('track_id', String(selectedTrack.id))
+                if (timeCode !== null) fd.append('time_code', String(timeCode))
+                existingImages.forEach(img => fd.append('existing_images', img))
+                if (existingVideo) fd.append('existing_video', existingVideo)
+                images.forEach(img => fd.append('image', img))
+                if (videoFile) fd.append('video', videoFile)
                 const res = await fetch(`${BASE}/posts/${editPostId}`, {
                     method: 'PATCH',
-                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
+                    headers: { Authorization: `Bearer ${token}` },
+                    body: fd,
                 })
+                const resData = await res.json().catch(() => null)
                 if (!res.ok) {
-                    const errData = await res.json().catch(() => null)
-                    throw new Error(errData?.detail ?? `Ошибка ${res.status}`)
+                    throw new Error(resData?.detail ?? `Ошибка ${res.status}`)
                 }
-                onEdited?.(editPostId, text.trim())
+                const updatedImage = resData?.image_url
+                    ? (resData.image_url.startsWith('http') ? resData.image_url : `${BASE}${resData.image_url}`)
+                    : (existingImages.length === 0 ? null : existingImages.length === 1 ? existingImages[0] : existingImages)
+                const updatedVideo = resData?.video_url
+                    ? (resData.video_url.startsWith('http') ? resData.video_url : `${BASE}${resData.video_url}`)
+                    : existingVideo
+                onEdited?.(editPostId, {
+                    text: text.trim(),
+                    image: updatedImage,
+                    video: updatedVideo,
+                    track_id: selectedTrack?.id ?? 0,
+                    timeCode,
+                })
                 onClose()
                 return
             }
@@ -281,6 +298,7 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
                 const errData = await res.json().catch(() => null)
                 throw new Error(errData?.detail ?? `Ошибка ${res.status}`)
             }
+            onCreated?.()
             onClose()
         } catch (e: any) {
             setError(e.message ?? 'Ошибка')
@@ -667,10 +685,11 @@ interface CreatePostModalProps {
     defaultImages?: string[]
     defaultVideo?: string | null
     editPostId?: number
-    onEdited?: (id: number, text: string) => void
+    onEdited?: (id: number, updates: PostEditedUpdates) => void
+    onCreated?: () => void
 }
 
-export const CreatePostModal = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited }: CreatePostModalProps) => {
+export const CreatePostModal = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited, onCreated }: CreatePostModalProps) => {
     return (
         <div
             style={{
@@ -711,6 +730,7 @@ export const CreatePostModal = ({ onClose, defaultText, defaultTrack, defaultTim
                     defaultVideo={defaultVideo}
                     editPostId={editPostId}
                     onEdited={onEdited}
+                    onCreated={onCreated}
                 />
             </div>
         </div>

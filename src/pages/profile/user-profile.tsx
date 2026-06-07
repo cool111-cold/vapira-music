@@ -398,7 +398,12 @@ const FeedPostsList = ({ token, userId }: { token: string; userId: string }) => 
 
     return (
         <div style={{ maxWidth: 520, margin: '1.5rem auto 0' }}>
-            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
+            {loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}>
+                    <div style={{ width: 24, height: 24, border: '2px solid #222', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'profile-spin 0.75s linear infinite' }} />
+                    <style>{`@keyframes profile-spin { to { transform: rotate(360deg) } }`}</style>
+                </div>
+            )}
             {!loading && posts.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет постов</p>}
             {posts.map((item, i) => (
                 <FeedPost key={item.id ?? i} item={item} token={token} />

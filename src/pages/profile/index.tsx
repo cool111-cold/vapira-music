@@ -7,7 +7,7 @@ import { useAudioPlayer } from '../../context/audio-context'
 import { Icon } from '../../components/icon'
 import { TrackRow, LibTrack } from '../library/track-row'
 import { VinylRow, VinylApi } from '../library/vinyls'
-import { CreatePostModal } from '../upload/post'
+import { CreatePostModal, PostEditedUpdates } from '../upload/post'
 
 const BASE = 'https://vapira.ru'
 
@@ -784,7 +784,7 @@ const mapApiPost = (p: ApiPost): FeedItem => ({
     isReposted: p.is_reposted ?? false,
 });
 
-const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedItem; token: string; onDelete?: (id: number) => void; onEdited?: (id: number, text: string) => void; readOnly?: boolean }) => {
+const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedItem; token: string; onDelete?: (id: number) => void; onEdited?: (id: number, updates: PostEditedUpdates) => void; readOnly?: boolean }) => {
     const navigate = useNavigate()
     const { user } = useAuth()
     const { seekAfterLoad } = useAudioPlayer()
@@ -919,7 +919,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                 body: JSON.stringify({ text: editText }),
             })
             if (res.ok) {
-                onEdited?.(item.id, editText)
+                onEdited?.(item.id, { text: editText, image: item.image, video: item.video, track_id: item.track_id, timeCode: item.timeCode ?? null })
                 setIsEditing(false)
             }
         } finally {
@@ -1044,7 +1044,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                             <path d="M17 1L21 5L17 9M21 5H8C5.79086 5 4 6.79086 4 9V11M7 23L3 19L7 15M3 19H16C18.2091 19 20 17.2091 20 15V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        {reposted ? 'Репостнуто' : 'Репост'}
+                        {/* {reposted ? 'Репостнуто' : 'Репост'} */}
                     </button>
                 )}
                 <button
@@ -1196,7 +1196,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                     defaultImages={item.image ? (Array.isArray(item.image) ? item.image : [item.image]) : []}
                     defaultVideo={item.video ?? null}
                     editPostId={item.id}
-                    onEdited={(id, text) => { onEdited?.(id, text); setEditModalOpen(false) }}
+                    onEdited={(id, updates) => { onEdited?.(id, updates); setEditModalOpen(false) }}
                 />
             )}
         </div>
@@ -1238,11 +1238,16 @@ const FeedPostsList = ({ token }: { token: string }) => {
     }
 
     const handleDelete = (id: number) => setPosts(prev => prev.filter(p => p.id !== id))
-    const handleEdited = (id: number, text: string) => setPosts(prev => prev.map(p => p.id === id ? { ...p, text } : p))
+    const handleEdited = (id: number, updates: PostEditedUpdates) => setPosts(prev => prev.map(p => p.id === id ? { ...p, text: updates.text, image: updates.image, video: updates.video, track_id: updates.track_id, timeCode: updates.timeCode } : p))
 
     return (
         <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>
-            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
+            {loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}>
+                    <div style={{ width: 24, height: 24, border: '2px solid #222', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'profile-spin 0.75s linear infinite' }} />
+                    <style>{`@keyframes profile-spin { to { transform: rotate(360deg) } }`}</style>
+                </div>
+            )}
             {!loading && posts.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет постов</p>}
             {posts.map((item, i) => (
                 <FeedPost key={item.id ?? i} item={item} token={token} onDelete={handleDelete} onEdited={handleEdited} />
@@ -1298,7 +1303,12 @@ const LikedPostsList = ({ token }: { token: string }) => {
 
     return (
         <div style={{ maxWidth: 520, margin: '0 auto' }}>
-            {loading && <p style={{ color: '#555', fontSize: '0.875rem' }}>загрузка...</p>}
+            {loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}>
+                    <div style={{ width: 24, height: 24, border: '2px solid #222', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'profile-spin 0.75s linear infinite' }} />
+                    <style>{`@keyframes profile-spin { to { transform: rotate(360deg) } }`}</style>
+                </div>
+            )}
             {!loading && posts.length === 0 && <p style={{ color: '#555', fontSize: '0.875rem' }}>нет понравившихся постов</p>}
             {posts.map((item, i) => (
                 <FeedPost key={item.id ?? i} item={item} token={token} readOnly />
@@ -1345,6 +1355,7 @@ export const ProfilePage = () => {
     const [subTab, setSubTab] = useState<SubTab>('saved')
     const [editOpen, setEditOpen] = useState(false)
     const [postOpen, setPostOpen] = useState(false)
+    const [feedKey, setFeedKey] = useState(0)
     const [favTrack, setFavTrack] = useState<FavTrack | null>(null)
     const [favVinyl, setFavVinyl] = useState<VinylApi | null>(null)
     const [favTrackLoading, setFavTrackLoading] = useState(false)
@@ -1416,7 +1427,7 @@ export const ProfilePage = () => {
     return (
         <div style={pageStyle}>
             {editOpen && <EditProfileModal onClose={() => setEditOpen(false)} />}
-            {postOpen && <CreatePostModal onClose={() => setPostOpen(false)} />}
+            {postOpen && <CreatePostModal onClose={() => setPostOpen(false)} onCreated={() => setFeedKey(k => k + 1)} />}
             <PlayerTwo top />
             <div style={{width: '100%', height: '75vh'}}>
                 <img src={bgImage} style={{width: '100%', height: '75vh', objectFit: 'cover'}}/>
@@ -1558,7 +1569,7 @@ export const ProfilePage = () => {
                                 <TabBtn active={subTab !== 'liked'} onClick={() => setSubTab('uploaded')} label="Мои посты" />
                                 <TabBtn active={subTab === 'liked'} onClick={() => setSubTab('liked')} label="Понравившиеся" />
                             </div>
-                            {subTab !== 'liked' && <FeedPostsList token={token} />}
+                            {subTab !== 'liked' && <FeedPostsList key={feedKey} token={token} />}
                             {subTab === 'liked' && <LikedPostsList token={token} />}
                         </div>
                     )}
