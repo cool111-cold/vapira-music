@@ -57,7 +57,6 @@ export default function App() {
               <Route path="/pages/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/pages/users/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
               <Route path="/pages/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
-
               <Route path="/pages/lyrics-editor" element={<ProtectedRoute><LyricsEditorPage /></ProtectedRoute>} />
 
               {/* games */}

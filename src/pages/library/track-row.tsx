@@ -403,7 +403,10 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                                         Редактировать
                                     </button>
                                     <button
-                                        onClick={() => navigate('/pages/lyrics-editor')}
+                                        onClick={() => {
+                                            setMenuOpen(false)
+                                            navigate(`/pages/lyrics-editor?trackId=${localTrack.id}`)
+                                        }}
                                         disabled={deleting}
                                         style={{ width: '100%', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}
                                         onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = '#252525' }}
