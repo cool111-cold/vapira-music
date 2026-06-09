@@ -39,6 +39,7 @@ interface AudioContextType {
     appendToQueue: (tracks: Track[]) => void;
     selectedVinylId: number | null;
     setSelectedVinylId: (id: number | null) => void;
+    setRate: (rate: number) => void;
 }
 
 const AudioCtx = createContext<AudioContextType | undefined>(undefined);
@@ -120,7 +121,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                         const pos = howlRef.current.seek() as number;
                         if (d > 0) setCurrentTime((pos / d) * 100);
                     }
-                }, 500);
+                }, 50);
             },
             onpause: () => {
                 setIsPlaying(false);
@@ -282,6 +283,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setTracks(newTracks);
     }, []);
 
+    const setRate = useCallback((rate: number) => {
+        if (howlRef.current) howlRef.current.rate(rate);
+    }, []);
+
     const appendToQueue = useCallback((newTracks: Track[]) => {
         if (newTracks.length === 0) return;
         setTracks(prev => {
@@ -315,6 +320,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 appendToQueue,
                 selectedVinylId,
                 setSelectedVinylId,
+                setRate,
             }}
         >
             {children}

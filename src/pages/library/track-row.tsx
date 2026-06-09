@@ -391,7 +391,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                                 <ReportIcon />
                                 {reported ? 'Жалоба отправлена' : 'Пожаловаться'}
                             </button>
-                            {isMobile && onDelete && (
+                            {onDelete && (
                                 <>
                                     <button
                                         onClick={() => { setMenuOpen(false); setEditOpen(true) }}
@@ -401,6 +401,18 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                                     >
                                         <PencilIcon />
                                         Редактировать
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/pages/lyrics-editor')}
+                                        disabled={deleting}
+                                        style={{ width: '100%', background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', textAlign: 'left', transition: 'background 0.15s' }}
+                                        onMouseEnter={e => { if (!deleting) e.currentTarget.style.background = '#252525' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                                    >
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M10.2088 16.1999H12.124M12.124 16.1999H14.128M12.124 16.1999V7.7999M12.124 7.7999H8.9999C8.66853 7.7999 8.3999 8.06853 8.3999 8.3999V9.28225M12.124 7.7999H14.9999C15.3313 7.7999 15.5999 8.06853 15.5999 8.3999V9.52931M4.7999 21.5999H19.1999C20.5254 21.5999 21.5999 20.5254 21.5999 19.1999V4.7999C21.5999 3.47442 20.5254 2.3999 19.1999 2.3999H4.7999C3.47442 2.3999 2.3999 3.47442 2.3999 4.7999V19.1999C2.3999 20.5254 3.47442 21.5999 4.7999 21.5999Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        </svg>
+                                        {'Субтитры'}
                                     </button>
                                     <button
                                         onClick={() => { setMenuOpen(false); handleDelete() }}
@@ -419,7 +431,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                         </div>
                     )}
                 </div>
-                {onDelete && !isMobile && (
+                {/* {onDelete && !isMobile && (
                     <>
                         <button
                             onClick={() => setEditOpen(true)}
@@ -443,7 +455,7 @@ export const TrackRow: React.FC<TrackRowProps> = ({ track, onRemove, onDelete, o
                             </svg>
                         </button>
                     </>
-                )}
+                )} */}
             </div>
         </>
     )

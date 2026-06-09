@@ -18,6 +18,7 @@ import { VinylsPage } from './pages/library/vinyls';
 import { ProfilePage } from './pages/profile';
 import { UserProfilePage } from './pages/profile/user-profile';
 import { AdminPage } from './pages/admin';
+import { LyricsEditorPage } from './pages/lyrics-editor';
 
 // games
 import { Crocodile } from './pages/games';
@@ -56,6 +57,8 @@ export default function App() {
               <Route path="/pages/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/pages/users/:id" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
               <Route path="/pages/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+
+              <Route path="/pages/lyrics-editor" element={<ProtectedRoute><LyricsEditorPage /></ProtectedRoute>} />
 
               {/* games */}
               <Route path='/games/crocodile' element={<Crocodile />} />
