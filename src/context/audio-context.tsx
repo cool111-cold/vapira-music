@@ -15,6 +15,7 @@ export interface Track {
     artist: string;
     src: string;
     cover?: string;
+    has_lyrics?: 0 | 1;
 }
 
 interface AudioContextType {
@@ -152,12 +153,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         })
             .then((r) => r.json())
             .then((data) => {
-                const saved = data.map((t: { id: number; title: string; artist: string; avatar_url?: string; stream_url: string }) => ({
+                const saved = data.map((t: { id: number; title: string; artist: string; avatar_url?: string; stream_url: string; has_lyrics?: 0 | 1 }) => ({
                     id: String(t.id),
                     name: t.title,
                     artist: t.artist,
                     cover: t.avatar_url,
                     src: `https://vapira.ru${t.stream_url}`,
+                    has_lyrics: t.has_lyrics,
                 }));
                 // Preserve any externally-loaded tracks not in saved (e.g. from share links)
                 setTracks(prev => {

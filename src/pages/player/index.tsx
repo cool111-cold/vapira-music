@@ -8,73 +8,6 @@ import { Icon } from '../../components/icon';
 
 const BASE_URL = 'https://vapira.ru';
 
-const LYRICS_LRC = `[00:49.94]Whip it like a Nascar, I can see the time pass
-[00:53.10]Feel like I'm in high school, fuckin' me in gym class
-[00:56.30]Shawty, I remember that
-[00:57.86]I know you remember that
-[00:59.45]You was fuckin' with me way before I even wrote raps
-[01:02.72]Now I'm seein' cash flow
-[01:04.26]I could be a asshole
-[01:05.81]Yeah, I know
-[01:06.59]But it's all good cause I let her spend my money, though
-[01:09.70]Playboy bunny, though, shawty look like a pornstar
-[01:13.14]I know she love me 'cause she fuck me in her sports car
-[01:16.30]I pull up on her, tell her that we finna go far
-[01:19.68]Drop top, smokin' thrax, lookin' at the stars
-[01:22.83]Gettin' high, taking bars till we on Mars
-[01:26.03]I could make the ground move like I'm Avatar
-[01:29.17]Now I'm faded on my own in my bedroom
-[01:32.37]Now I'm lookin' at my phone should I text you?
-[01:35.37]I just wanna sex you, I just wanna bless you
-[01:38.35]Baby, I'm a priest in the underworld, guess who
-[01:41.60]Lil' Bo Peep with a brand new flow too
-[01:44.72]Lookin' at my teeth like you never seen a gold tooth
-[01:47.91]Never in the streets 'cause I never leave my home
-[01:50.81]If you wanna live a dream, I ain't coming, bitch, I told you
-[02:06.31]Whip it like a Nascar, I can see the time pass
-[02:09.41]Feel like I'm in high school, fuckin' me in gym class
-[02:12.52]Shawty, I remember that
-[02:14.16]I know you remember that
-[02:15.76]You was fuckin' with me way before I even wrote raps
-[02:19.04]Now I'm seein' cash flow
-[02:20.52]I could be a asshole
-[02:22.10]Yeah, I know
-[02:22.90]But it's all good cause I let her spend my money, though
-[02:26.08]Playboy bunny, though, shawty look like a pornstar
-[02:29.43]I know she love me 'cause she fuck me in her sports car
-[02:32.57]I pull up on her, tell her that we finna go far
-[02:35.94]Drop top, smokin' thrax, lookin' at the stars
-[02:39.13]Gettin' high, taking bars till we on Mars
-[02:42.29]I could make the ground move like I'm Avatar
-[02:45.47]Now I'm faded on my own in my bedroom
-[02:48.64]Now I'm lookin' at my phone should I text you?
-[02:51.47]I just wanna sex you, I just wanna bless you
-[02:54.66]Baby, I'm a priest in the underworld, guess who
-[02:57.89]Lil' Bo Peep with a brand new flow too
-[03:01.01]Lookin' at my teeth like you never seen a gold tooth
-[03:04.27]Never in the streets 'cause I never leave my home
-[03:07.11]If you wanna live a dream, I ain't coming, bitch, I-`;
-
-
-const LYRICS_LRC_MS = `[[[8023] Знаешь [8507] мы [8833] щас [9024] типа [9293] в [9457] лондоне {color: #b76151, size: 200%, text: "Лондон - город во франции"} [9951] целуй [10347] меня [10797] на [11259] футболке [11706] я [11911] курю [12310] сиги [12690] под [12908] теплым [13488] дождем | [17438] знаешь [17953] мы [18136] щас [18417] типа [18717] в [18815] лондоне [19377] целуй [19943] меня [20239] на [20349] футболке [21190] я [21396] курю [21614] сиги [22210] под [22419] теплым [22696] дождем | [23535] грязные [24024] кроссы [24410] хожу [24793] в [24966] них [25146] так [25305] долго [25870] да [26086] они [26335] знают [26704] что [26981] мне [27130] все [27440] равно | [28114] на [28233] мне [28443] нет [28742] парфюма [29106] я [29477] пахну [29681] собой [30404] говорю [30886] по [31256] техе [31560] я [31757] щас [32061] занятой | [32699] снова [33169] потяряться [34080] махаю [34538] рукой [35208] давно [35474] хотел [35774] сказать [36246] хотя [36587] ладно [37058] https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0R626zSan4Gqjsn1fA0NThk03p21xh_dfwA&s | [37536] Smirnoff [38222] Ice [38500] в [38670] руке [39417] волны [39911] ласкают [40887] мне [41110] уши [41662] еду [41950] в [42116] такси [42535] домой [43481] мертвая [44270] лиса [44938] на [45216] обочине [46236] https://media.tenor.com/dwsRFTPe6BsAAAAe/%D0%B3%D1%80%D1%83%D1%81%D1%82%D0%BD%D1%8B%D0%B9-%D1%81%D0%BC%D0%B0%D0%B9%D0%BB%D0%B8%D0%BA-%D0%B3%D1%80%D1%83%D1%81%D1%82%D0%BD%D0%BE.png | [47020] В ритме [47946] большого [48731] города [49694] в [49754] сумке [50295] Red Bull 0.5 [52094] Легкие [52794] заполнены [54088] дымом [54137] — [54671] тяжело [55480] https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnmcsEqjnYnQvxgHR3ibLcvmj-QNLD5j3vhw&s | [55619] Знаешь [55923] мы [55946] ща [56054] типа [56371] в [56514] Лондоне [57014] целуй [57467] меня [57857] на [58018] футболке [58858] я [58992] курю [59284] сиги [59698] под [59913] теплым [60371] дождем | [61198] грязные [61696] кроссы [62157] хожу [62512] в [62577] них [62734] так [62988] долго [63581] да [63821] они [64085] знают [64437] что [64650] мне [64848] все [65102] равно | [65803] на [65866] мне [66108] нет [66241] парфюма [66791] я [66982] пахну [67401] собой [68094] говорю [68556] по [68754] техе [69127] я [69361] ща [69595] занятой | [70472] снова [70935] потяряться [71536] махаю [72148] рукой [72864] давно [73144] хотел [73422] сказать [74014] хотя [74186] ладно [74792] https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS0R626zSan4Gqjsn1fA0NThk03p21xh_dfwA&s]
-]`
-
-// const LYRICS_LRC_MS = `[[21732] Это {color: #51c4e1, size: 200%} [22037] было [22143] давно | [22634] касту [22852] еще [22868] не [22989] знали [23215] даже [23407] в [23536] пределах [23967] https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5E7qbapcB2LvIwT1wiJf3Xqu74Esc11ZoNw&s | [24533] Вова [24858] тогда [25148] еще [25317] не [25495] переехал [25970] в [26104] Москву {color: #ff0000, size: 200%} [26340] из [26532] Молдовы {color: #5cffe4, size: 200%} | [27295] тогда [27466] еще [27651] даже [27887] не [28102] было [28319] самого {size: 300%, text: "кишенева"} | [29577] не [29698] было [29837] ни [30074] грендмастера [30833] флеша [31073] ни [31206] диджея [31576] 108 {size: 200%}]`
-
-// const LYRICS_LRC_MS = `[[21721] Эй [23314] че [23589] такое [23952] че [24145] такое [25006] (Чё такое? Эй, а, ай, а-а) [28157] Fuck [28339] y'all [28452] till [28681] I [28765] die [29162] ONDA [29462] ANDAR [29849] ха [31526] ONDA [31859] ANDAR [32364] ха | [32864] а-а-а | [38356] а-а-а | [44615] ты [44766] не [44993] про [45176] всех [45912] как [46120] и [46316] я [46632] тоже [47929] услышь [48260] как [48367] шумит [48874] моя [49399] кожа]`
-const parseLrc = (lrc: string): { time: number; text: string }[] =>
-    lrc.trim().split('\n')
-        .map(line => {
-            const m = line.match(/^\[(\d+):(\d+\.\d+)\](.*)/);
-            if (!m) return null;
-            const text = m[3].trim();
-            if (!text) return null;
-            return { time: parseInt(m[1]) * 60 + parseFloat(m[2]), text };
-        })
-        .filter((x): x is { time: number; text: string } => x !== null);
-
-const LYRICS = parseLrc(LYRICS_LRC);
-
 type LyricWord = {
     time: number;
     text: string;
@@ -120,9 +53,18 @@ const parseLrcMs = (lrc: string): LyricWord[] => {
     });
     return result;
 };
-const LYRICS_MS = parseLrcMs(LYRICS_LRC_MS);
 
-const LINE_H = 48;
+const extractLyricsPayload = (raw: string): string => {
+    const text = raw.trim();
+    if (!text) return '';
+
+    try {
+        const parsed = JSON.parse(text) as { lyrics?: unknown };
+        if (typeof parsed?.lyrics === 'string') return parsed.lyrics;
+    } catch {}
+
+    return text;
+};
 
 const FEED_LIMIT = 10;
 
@@ -485,6 +427,8 @@ export const PlayerScene = () => {
     const [vinylTabActive, setVinylTabActive] = useState(false);
 
     const [showLyrics, setShowLyrics] = useState(false);
+    const [trackHasLyrics, setTrackHasLyrics] = useState(false);
+    const [trackLyricsSource, setTrackLyricsSource] = useState('');
     const [showVolume, setShowVolume] = useState(false);
     const volumeRef = useRef<HTMLDivElement>(null);
 
@@ -603,6 +547,7 @@ export const PlayerScene = () => {
                 artist: t.artist,
                 cover: t.avatar_url ?? undefined,
                 src: `${BASE_URL}${t.stream_url}`,
+                has_lyrics: t.has_lyrics,
             }));
             if (skip === 0) loadQueueAndPlay(newTracks);
             else appendToQueue(newTracks);
@@ -646,6 +591,7 @@ export const PlayerScene = () => {
                     artist: t.artist,
                     cover: t.avatar_url ?? undefined,
                     src: `${BASE_URL}${t.stream_url}`,
+                    has_lyrics: t.has_lyrics,
                 });
                 seekAfterLoad(feedItems[feedItemIndex]?.timeCode ?? 0);
             })
@@ -662,6 +608,46 @@ export const PlayerScene = () => {
             .then(data => setFeedAuthor(data))
             .catch(() => setFeedAuthor(null));
     }, [currentAutorId, token]);
+
+    useEffect(() => {
+        if (!currentTrack?.id || !token || currentTrack.has_lyrics !== 1) {
+            setTrackHasLyrics(false);
+            setTrackLyricsSource('');
+            return;
+        }
+
+        let cancelled = false;
+
+        const loadTrackLyrics = async () => {
+            try {
+                setTrackHasLyrics(true);
+
+                const lyricsRes = await fetch(`${BASE_URL}/tracks/${currentTrack.id}/lyrics`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!lyricsRes.ok) throw new Error('Lyrics request failed');
+
+                const lyrics = extractLyricsPayload(await lyricsRes.text());
+                if (cancelled) return;
+
+                setTrackLyricsSource(lyrics.trim());
+            } catch {
+                if (cancelled) return;
+                setTrackHasLyrics(false);
+                setTrackLyricsSource('');
+            }
+        };
+
+        loadTrackLyrics();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentTrack?.has_lyrics, currentTrack?.id, token]);
+
+    useEffect(() => {
+        if (!trackHasLyrics) setShowLyrics(false);
+    }, [trackHasLyrics]);
 
     const currentPostId = feedMode === 'feed' ? feedItems[feedItemIndex]?.id : undefined;
 
@@ -748,6 +734,7 @@ export const PlayerScene = () => {
                     artist: t.artist,
                     cover: t.avatar_url ?? undefined,
                     src: `${BASE_URL}${t.stream_url}`,
+                    has_lyrics: t.has_lyrics,
                 }));
             if (tracks.length > 0) loadQueueAndPlay(tracks);
         } catch {} finally {
@@ -831,6 +818,7 @@ export const PlayerScene = () => {
                     artist: t.artist,
                     cover: t.avatar_url ?? undefined,
                     src: `${BASE_URL}${t.stream_url}`,
+                    has_lyrics: t.has_lyrics,
                 });
             })
             .catch(() => {});
@@ -883,46 +871,40 @@ export const PlayerScene = () => {
     const currentMs = Math.round(currentSec * 1000);
     const isLiked = currentTrack ? savedIds.has(currentTrack.id) : false;
     const isFeedMode = feedMode === 'feed';
-
-    const activeLyricIndex = useMemo(() => {
-        if (!showLyrics || LYRICS.length === 0) return -1;
-        let idx = -1;
-        for (let i = 0; i < LYRICS.length; i++) {
-            if (LYRICS[i].time <= currentSec) idx = i;
-            else break;
-        }
-        return idx;
-    }, [showLyrics, currentSec]);
+    const lyricsMs = useMemo(() => (
+        trackLyricsSource ? parseLrcMs(trackLyricsSource) : []
+    ), [trackLyricsSource]);
+    const canShowLyrics = trackHasLyrics && lyricsMs.length > 0;
 
     const activeWordIndex = useMemo(() => {
-        if (!showLyrics || LYRICS_MS.length === 0) return -1;
+        if (!showLyrics || lyricsMs.length === 0) return -1;
         let idx = -1;
-        for (let i = 0; i < LYRICS_MS.length; i++) {
-            if (LYRICS_MS[i].time <= currentMs) idx = i;
+        for (let i = 0; i < lyricsMs.length; i++) {
+            if (lyricsMs[i].time <= currentMs) idx = i;
             else break;
         }
         return idx;
-    }, [showLyrics, currentMs]);
+    }, [showLyrics, currentMs, lyricsMs]);
 
     const feedActiveWordIndex = useMemo(() => {
-        if (!isFeedMode || LYRICS_MS.length === 0) return -1;
+        if (!isFeedMode || lyricsMs.length === 0) return -1;
         let idx = -1;
-        for (let i = 0; i < LYRICS_MS.length; i++) {
-            if (LYRICS_MS[i].time <= currentMs) idx = i;
+        for (let i = 0; i < lyricsMs.length; i++) {
+            if (lyricsMs[i].time <= currentMs) idx = i;
             else break;
         }
         return idx;
-    }, [isFeedMode, currentMs]);
+    }, [isFeedMode, currentMs, lyricsMs]);
 
-    const currentPhrase = activeWordIndex >= 0 ? LYRICS_MS[activeWordIndex].phrase : -1;
-    const visibleWords = LYRICS_MS.filter(t => t.phrase === currentPhrase && t.time <= currentMs);
-    const currentFeedPhrase = feedActiveWordIndex >= 0 ? LYRICS_MS[feedActiveWordIndex].phrase : -1;
+    const currentPhrase = activeWordIndex >= 0 ? lyricsMs[activeWordIndex].phrase : -1;
+    const visibleWords = lyricsMs.filter(t => t.phrase === currentPhrase && t.time <= currentMs);
+    const currentFeedPhrase = feedActiveWordIndex >= 0 ? lyricsMs[feedActiveWordIndex].phrase : -1;
     const feedSubtitleTokens = currentFeedPhrase >= 0
-        ? LYRICS_MS
+        ? lyricsMs
             .filter(t => t.phrase === currentFeedPhrase && t.time <= currentMs)
         : [];
 
-    const lyricsActive = showLyrics && !isFeedMode;
+    const lyricsActive = showLyrics && !isFeedMode && canShowLyrics;
 
     return (
         <div
@@ -1298,18 +1280,21 @@ export const PlayerScene = () => {
                             }}>
                                 {currentTrack.name}
                             </p>
-                            {!isFeedMode && (
+                            {!isFeedMode && currentTrack?.has_lyrics === 1 && (
                                 <button
-                                    onClick={() => setShowLyrics(v => !v)}
+                                    onClick={() => {
+                                        if (!canShowLyrics) return;
+                                        setShowLyrics(v => !v);
+                                    }}
                                     style={{
                                         background: 'none',
                                         border: 'none',
-                                        cursor: 'pointer',
+                                        cursor: canShowLyrics ? 'pointer' : 'default',
                                         padding: 0,
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        opacity: showLyrics ? 1 : 0.5,
+                                        opacity: canShowLyrics ? (showLyrics ? 1 : 0.5) : 0.22,
                                         transition: 'opacity 0.2s',
                                     }}
                                 >

@@ -13,6 +13,69 @@ interface Token {
     footnote?: string;
 }
 
+interface TrackResponse {
+    id: number;
+    title: string;
+    artist: string;
+    avatar_url?: string | null;
+    stream_url: string;
+    has_lyrics?: 0 | 1;
+}
+
+const parseSerializedLyrics = (lyrics: string): Token[] => {
+    const normalized = lyrics.trim();
+    if (!normalized) return [];
+
+    const matches = normalized.match(/\[[0-9]+\][^[\]]*(?:\{[^{}]*\})?|\|/g) ?? [];
+
+    return matches
+        .map((chunk) => {
+            const trimmed = chunk.trim();
+            if (trimmed === '|') return { time: 0, text: '|' } as Token;
+
+            const match = trimmed.match(/^\[(\d+)\]\s*(.*)$/);
+            if (!match) return null;
+
+            const time = Number(match[1]);
+            const rawBody = match[2].trim();
+            if (!rawBody) return null;
+
+            const metaMatch = rawBody.match(/\{([^{}]+)\}\s*$/);
+            const meta = metaMatch?.[1] ?? '';
+            const text = rawBody.replace(/\s*\{[^{}]+\}\s*$/g, '').trim();
+            if (!text) return null;
+
+            const color = meta.match(/\bcolor\s*:\s*([^,}]+)/)?.[1]?.trim();
+            const sizePercentRaw = meta.match(/\bsize\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*%/)?.[1];
+            const footnote =
+                meta.match(/\b(?:text|footnote|note)\s*:\s*"([^"]*)"/)?.[1]?.trim()
+                ?? meta.match(/\b(?:text|footnote|note)\s*:\s*'([^']*)'/)?.[1]?.trim();
+
+            const sizePercent = sizePercentRaw ? Number(sizePercentRaw) : undefined;
+
+            return {
+                time,
+                text,
+                color: color || undefined,
+                sizePercent: Number.isFinite(sizePercent) ? sizePercent : undefined,
+                footnote: footnote || undefined,
+            } as Token;
+        })
+        .filter((token): token is Token => token !== null);
+};
+
+const extractLyricsPayload = (raw: string): string => {
+    const text = raw.trim();
+    if (!text) return '';
+
+    try {
+        const parsed = JSON.parse(text) as { lyrics?: unknown };
+        if (typeof parsed?.lyrics === 'string') return parsed.lyrics;
+    } catch {}
+
+    return text;
+};
+
 export const LyricsEditorPage = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
@@ -26,25 +89,69 @@ export const LyricsEditorPage = () => {
     const [tagSizePercent, setTagSizePercent] = useState('100');
     const [tagFootnote, setTagFootnote] = useState('');
     const [tagSettingsOpen, setTagSettingsOpen] = useState(false);
-    const [copied, setCopied] = useState(false);
+    const [saveLoading, setSaveLoading] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [saveError, setSaveError] = useState('');
+    const [deleteLoading, setDeleteLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    const resetTagSettings = () => {
+        setTagColor('#ffffff');
+        setTagSizePercent('100');
+        setTagFootnote('');
+    };
 
     const currentSec = (currentTime / 100) * durationSec;
     const currentMs = Math.round(currentSec * 1000);
 
     useEffect(() => {
         if (!token || !trackId) return;
-        fetch(`${BASE_URL}/tracks/${trackId}`, { headers: { Authorization: `Bearer ${token}` } })
-            .then(r => r.json())
-            .then(t => {
+        let cancelled = false;
+
+        const loadTrackAndLyrics = async () => {
+            try {
+                const trackRes = await fetch(`${BASE_URL}/tracks/${trackId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const t: TrackResponse = await trackRes.json();
+                if (cancelled || !t?.id) return;
+
                 loadAndPlayExternal({
                     id: String(t.id),
                     name: t.title,
                     artist: t.artist,
-                    cover: t.avatar_url,
+                    cover: t.avatar_url ?? undefined,
                     src: `${BASE_URL}${t.stream_url}`,
+                    has_lyrics: t.has_lyrics,
                 });
-            });
+
+                if (t.has_lyrics !== 1) {
+                    setTokens([]);
+                    return;
+                }
+
+                const lyricsRes = await fetch(`${BASE_URL}/tracks/${trackId}/lyrics`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                if (!lyricsRes.ok) {
+                    setTokens([]);
+                    return;
+                }
+
+                const lyrics = extractLyricsPayload(await lyricsRes.text());
+                if (cancelled) return;
+                setTokens(parseSerializedLyrics(lyrics));
+            } catch {
+                if (cancelled) return;
+                setTokens([]);
+            }
+        };
+
+        loadTrackAndLyrics();
+
+        return () => {
+            cancelled = true;
+        };
     }, [token, trackId, loadAndPlayExternal]);
 
     const mark = () => {
@@ -87,10 +194,54 @@ export const LyricsEditorPage = () => {
         ? tokens.map(serializeToken).join(' ')
         : '';
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(generated);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+    const saveLyrics = async () => {
+        if (!token || !trackId || !generated || saveLoading) return;
+
+        setSaveLoading(true);
+        setSaveSuccess(false);
+        setSaveError('');
+        try {
+            const res = await fetch(`${BASE_URL}/tracks/${trackId}/lyrics`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ lyrics: generated }),
+            });
+
+            if (!res.ok) throw new Error('Не удалось сохранить субтитры');
+
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 2000);
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : 'Не удалось сохранить субтитры');
+        } finally {
+            setSaveLoading(false);
+        }
+    };
+
+    const deleteLyrics = async () => {
+        if (!token || !trackId || deleteLoading) return;
+
+        setDeleteLoading(true);
+        setSaveSuccess(false);
+        setSaveError('');
+        try {
+            const res = await fetch(`${BASE_URL}/tracks/${trackId}/lyrics`, {
+                method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) throw new Error('Не удалось удалить субтитры');
+
+            navigate(-1);
+        } catch (error) {
+            setSaveError(error instanceof Error ? error.message : 'Не удалось удалить субтитры');
+            setDeleteLoading(false);
+        }
     };
 
     const toggleRef = useRef(toggle);
@@ -290,7 +441,11 @@ export const LyricsEditorPage = () => {
                         }}
                     />
                     <button
-                        onClick={() => setTagSettingsOpen(v => !v)}
+                        onClick={() => setTagSettingsOpen(v => {
+                            const next = !v;
+                            if (!next) resetTagSettings();
+                            return next;
+                        })}
                         style={{
                             ...btnStyle,
                             padding: '10px 14px',
@@ -333,8 +488,9 @@ export const LyricsEditorPage = () => {
                             Размер, %
                             <input
                                 type="number"
-                                min="1"
-                                step="1"
+                                min="100"
+                                max="1000"
+                                step="100"
                                 value={tagSizePercent}
                                 onChange={e => setTagSizePercent(e.target.value)}
                                 style={{ ...inputStyle, width: 120 }}
@@ -457,9 +613,40 @@ export const LyricsEditorPage = () => {
                     }}>
                         {generated}
                     </div>
-                    <button onClick={copyToClipboard} style={btnStyle}>
-                        {copied ? '✓ Скопировано' : 'Копировать'}
+                    <button
+                        onClick={saveLyrics}
+                        disabled={!trackId || !token || saveLoading || deleteLoading}
+                        style={{
+                            ...btnStyle,
+                            opacity: !trackId || !token || saveLoading || deleteLoading ? 0.6 : 1,
+                            cursor: !trackId || !token || saveLoading || deleteLoading ? 'default' : 'pointer',
+                        }}
+                    >
+                        {saveLoading ? 'Сохранение...' : saveSuccess ? '✓ Сохранено' : 'Сохранить'}
                     </button>
+                    <button
+                        onClick={deleteLyrics}
+                        disabled={!trackId || !token || saveLoading || deleteLoading}
+                        style={{
+                            ...btnStyle,
+                            marginLeft: 10,
+                            borderColor: 'rgba(255,80,80,0.35)',
+                            color: 'rgba(255,120,120,0.95)',
+                            opacity: !trackId || !token || saveLoading || deleteLoading ? 0.6 : 1,
+                            cursor: !trackId || !token || saveLoading || deleteLoading ? 'default' : 'pointer',
+                        }}
+                    >
+                        {deleteLoading ? 'Удаление...' : 'Удалить'}
+                    </button>
+                    {saveError && (
+                        <div style={{
+                            marginTop: 10,
+                            color: '#ff7b7b',
+                            fontSize: '0.85rem',
+                        }}>
+                            {saveError}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
