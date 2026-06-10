@@ -257,6 +257,8 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
                 if (existingVideo) fd.append('existing_video', existingVideo)
                 images.forEach(img => fd.append('image', img))
                 if (videoFile) fd.append('video', videoFile)
+                if ((defaultImages?.length ?? 0) > 0 && existingImages.length === 0 && images.length === 0) fd.append('remove_image', 'true')
+                if (defaultVideo && !existingVideo && !videoFile) fd.append('remove_video', 'true')
                 const res = await fetch(`${BASE}/posts/${editPostId}`, {
                     method: 'PATCH',
                     headers: { Authorization: `Bearer ${token}` },
