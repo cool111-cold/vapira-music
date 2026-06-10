@@ -22,6 +22,7 @@ import { LyricsEditorPage } from './pages/lyrics-editor';
 
 // games
 import { Crocodile } from './pages/games';
+// dicTAtor
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const { token } = useAuth();

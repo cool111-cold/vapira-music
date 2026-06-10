@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context'
 import { PlayerTwo } from '../../components/player/player-two'
+import { CreatePostModal } from './post'
 
 const STEPS = ['Файл', 'Название', 'Исполнитель', 'Обложка']
 
@@ -123,8 +125,12 @@ const MiniPlayer = ({ file }: { file: File | null }) => {
     )
 }
 
+interface VinylItem { id: number; name: string; cover: string | null }
+interface UploadedTrack { id: number; title: string; artist: string; avatar_url: string | null; stream_url: string }
+
 export const UploadTrackPage = () => {
     const { token } = useAuth()
+    const navigate = useNavigate()
     const [title, setTitle] = useState('')
     const [artist, setArtist] = useState('')
     const [avatarUrl, setAvatarUrl] = useState('')
@@ -133,6 +139,12 @@ export const UploadTrackPage = () => {
     const [errorMsg, setErrorMsg] = useState('')
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [isMobile, setIsMobile] = useState(() => window.innerWidth < 640)
+    const [uploadedTrack, setUploadedTrack] = useState<UploadedTrack | null>(null)
+    const [showVinylMenu, setShowVinylMenu] = useState(false)
+    const [vinyls, setVinyls] = useState<VinylItem[]>([])
+    const [vinylsLoading, setVinylsLoading] = useState(false)
+    const [vinylAdded, setVinylAdded] = useState(false)
+    const [showPostModal, setShowPostModal] = useState(false)
 
     useEffect(() => {
         const handler = () => setIsMobile(window.innerWidth < 640)
@@ -167,11 +179,16 @@ export const UploadTrackPage = () => {
                 body: form,
             })
             if (!res.ok) throw new Error((await res.json()).detail ?? 'Ошибка загрузки')
+            const data = await res.json()
+            setUploadedTrack({ id: data.id, title: data.title ?? title, artist: data.artist ?? artist, avatar_url: data.avatar_url ?? avatarUrl, stream_url: data.stream_url ?? '' })
             setStatus('success')
             setTitle('')
             setArtist('')
             setAvatarUrl('')
             setFile(null)
+            setShowVinylMenu(false)
+            setVinylAdded(false)
+            setShowPostModal(false)
             if (fileInputRef.current) fileInputRef.current.value = ''
         } catch (e) {
             setStatus('error')
@@ -179,7 +196,30 @@ export const UploadTrackPage = () => {
         }
     }
 
+    const handleOpenVinylMenu = async () => {
+        setShowVinylMenu(v => !v)
+        if (vinyls.length > 0) return
+        setVinylsLoading(true)
+        try {
+            const res = await fetch('https://vapira.ru/vinyl?mode=created', { headers: { Authorization: `Bearer ${token}` } })
+            if (res.ok) setVinyls(await res.json())
+        } finally {
+            setVinylsLoading(false)
+        }
+    }
+
+    const handleAddToVinyl = async (vinylId: number) => {
+        if (!uploadedTrack || !token) return
+        await fetch(`https://vapira.ru/vinyl/${vinylId}/tracks/${uploadedTrack.id}`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+        })
+        setVinylAdded(true)
+        setShowVinylMenu(false)
+    }
+
     return (
+        <>
         <div style={{
             width: '100%',
             minHeight: '100vh',
@@ -318,7 +358,102 @@ export const UploadTrackPage = () => {
                             <p style={{ color: '#FD5E5E', fontSize: '0.78rem', marginBottom: '1rem' }}>{errorMsg}</p>
                         )}
                         {status === 'success' && (
-                            <p style={{ color: '#5efd9a', fontSize: '0.78rem', marginBottom: '1rem' }}>трек загружен</p>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <p style={{ color: '#5efd9a', fontSize: '0.78rem', marginBottom: '0.75rem' }}>трек загружен</p>
+                                <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={handleOpenVinylMenu}
+                                        style={{
+                                            padding: '0.45rem 0.9rem',
+                                            background: vinylAdded ? '#1a1a1a' : '#111',
+                                            border: `1px solid ${vinylAdded ? '#5efd9a' : '#2a2a2a'}`,
+                                            borderRadius: '0.4rem',
+                                            color: vinylAdded ? '#5efd9a' : '#aaa',
+                                            fontSize: '0.72rem',
+                                            letterSpacing: '0.08em',
+                                            textTransform: 'uppercase',
+                                            cursor: 'pointer',
+                                            fontFamily: 'inherit',
+                                        }}
+                                    >
+                                        {vinylAdded ? '✓ добавлено в пластинку' : '+ в пластинку'}
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/pages/lyrics-editor${uploadedTrack?.id ? `?trackId=${uploadedTrack.id}` : ''}`)}
+                                        style={{
+                                            padding: '0.45rem 0.9rem',
+                                            background: '#111',
+                                            border: '1px solid #2a2a2a',
+                                            borderRadius: '0.4rem',
+                                            color: '#aaa',
+                                            fontSize: '0.72rem',
+                                            letterSpacing: '0.08em',
+                                            textTransform: 'uppercase',
+                                            cursor: 'pointer',
+                                            fontFamily: 'inherit',
+                                        }}
+                                    >
+                                        + субтитры
+                                    </button>
+                                    <button
+                                        onClick={() => setShowPostModal(true)}
+                                        style={{
+                                            padding: '0.45rem 0.9rem',
+                                            background: '#111',
+                                            border: '1px solid #2a2a2a',
+                                            borderRadius: '0.4rem',
+                                            color: '#aaa',
+                                            fontSize: '0.72rem',
+                                            letterSpacing: '0.08em',
+                                            textTransform: 'uppercase',
+                                            cursor: 'pointer',
+                                            fontFamily: 'inherit',
+                                        }}
+                                    >
+                                        + создать пост
+                                    </button>
+                                </div>
+                                {showVinylMenu && (
+                                    <div style={{
+                                        marginTop: '0.6rem',
+                                        background: '#0d0d0d',
+                                        border: '1px solid #1e1e1e',
+                                        borderRadius: '0.5rem',
+                                        overflow: 'hidden',
+                                        maxHeight: '220px',
+                                        overflowY: 'auto',
+                                    }}>
+                                        {vinylsLoading && (
+                                            <p style={{ color: '#555', fontSize: '0.72rem', padding: '0.75rem 1rem', margin: 0 }}>загрузка...</p>
+                                        )}
+                                        {!vinylsLoading && vinyls.length === 0 && (
+                                            <p style={{ color: '#555', fontSize: '0.72rem', padding: '0.75rem 1rem', margin: 0 }}>нет пластинок</p>
+                                        )}
+                                        {vinyls.map(v => (
+                                            <div
+                                                key={v.id}
+                                                onClick={() => handleAddToVinyl(v.id)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.6rem',
+                                                    padding: '0.6rem 1rem',
+                                                    cursor: 'pointer',
+                                                    borderBottom: '1px solid #111',
+                                                    transition: 'background 0.15s',
+                                                }}
+                                                onMouseEnter={e => (e.currentTarget.style.background = '#151515')}
+                                                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                            >
+                                                {v.cover && (
+                                                    <img src={`https://vapira.ru/${v.cover}`} alt="" style={{ width: 28, height: 28, borderRadius: '0.25rem', objectFit: 'cover', flexShrink: 0 }} />
+                                                )}
+                                                <span style={{ fontSize: '0.78rem', color: '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                         <button
@@ -349,5 +484,13 @@ export const UploadTrackPage = () => {
                 <MiniPlayer file={file} />
             </div>
         </div>
+        {showPostModal && (
+            <CreatePostModal
+                onClose={() => setShowPostModal(false)}
+                defaultTrack={uploadedTrack}
+                onCreated={() => setShowPostModal(false)}
+            />
+        )}
+        </>
     )
 }

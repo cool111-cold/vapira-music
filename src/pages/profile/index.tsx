@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { PlayerTwo } from '../../components/player/player-two'
 import { useAuth, UserUpdate } from '../../context/auth-context'
@@ -533,7 +532,7 @@ const UploadedVinylsList = ({ token }: { token: string }) => {
 
     useEffect(() => {
         setLoading(true)
-        fetch(`${BASE}/vinyl`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(`${BASE}/vinyl?mode=created`, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
             .then(setVinyls)
             .catch(() => setVinyls([]))
@@ -806,19 +805,16 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
     const [reporting, setReporting] = useState(false)
     const [reported, setReported] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
-    const [menuPos, setMenuPos] = useState({ x: 0, y: 0 })
     const [confirmDelete, setConfirmDelete] = useState(false)
     const [editModalOpen, setEditModalOpen] = useState(false)
-    const dotsRef = useRef<HTMLButtonElement>(null)
-    const dotsMenuRef = useRef<HTMLDivElement>(null)
+    const menuContainerRef = useRef<HTMLDivElement>(null)
 
     const canRepost = !!user && String((user as any).id) !== String(item.autor_id)
 
     useEffect(() => {
         if (!menuOpen) return
         const handler = (e: MouseEvent) => {
-            const target = e.target as Node
-            if (!dotsRef.current?.contains(target) && !dotsMenuRef.current?.contains(target)) {
+            if (!menuContainerRef.current?.contains(e.target as Node)) {
                 setMenuOpen(false)
                 setConfirmDelete(false)
             }
@@ -1050,41 +1046,30 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                         {/* {reposted ? 'Репостнуто' : 'Репост'} */}
                     </button>
                 )}
-                <button
-                    ref={dotsRef}
-                    onClick={e => {
-                        e.stopPropagation()
-                        if (dotsRef.current) {
-                            const rect = dotsRef.current.getBoundingClientRect()
-                            setMenuPos({ x: rect.right, y: rect.bottom })
-                        }
-                        setMenuOpen(v => !v)
-                    }}
-                    style={actBtnStyle(menuOpen ? '#fff' : '#555')}
-                    onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.color = '#fff' }}
-                    onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = menuOpen ? '#fff' : '#555' }}
-                >
-                    <DotsIcon />
-                </button>
-            </div>
-
-            {menuOpen && createPortal(
-                <div
-                    ref={dotsMenuRef}
-                    style={{
-                        position: 'fixed',
-                        top: menuPos.y + 4,
-                        left: menuPos.x - 172,
-                        zIndex: 1000,
-                        background: 'rgba(20,20,20,0.97)',
-                        backdropFilter: 'blur(16px)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 12,
-                        padding: '6px 0',
-                        minWidth: 172,
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
-                    }}
-                >
+                <div ref={menuContainerRef} style={{ position: 'relative' }}>
+                    <button
+                        onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
+                        style={actBtnStyle(menuOpen ? '#fff' : '#555')}
+                        onMouseEnter={e => { if (!menuOpen) e.currentTarget.style.color = '#fff' }}
+                        onMouseLeave={e => { if (!menuOpen) e.currentTarget.style.color = menuOpen ? '#fff' : '#555' }}
+                    >
+                        <DotsIcon />
+                    </button>
+                    {menuOpen && <div
+                        style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: '100%',
+                            zIndex: 1000,
+                            background: 'rgba(20,20,20,0.97)',
+                            backdropFilter: 'blur(16px)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: 12,
+                            padding: '6px 0',
+                            minWidth: 172,
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
+                        }}
+                    >
                     <button
                         onClick={() => { handleShare(); setMenuOpen(false) }}
                         style={{
@@ -1181,9 +1166,9 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                             {reported ? 'Жалоба отправлена' : reporting ? 'Отправка...' : 'Пожаловаться'}
                         </button>
                     )}
-                </div>,
-                document.body
-            )}
+                    </div>}
+                </div>
+            </div>
             {editModalOpen && (
                 <CreatePostModal
                     onClose={() => setEditModalOpen(false)}
