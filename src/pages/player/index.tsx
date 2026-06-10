@@ -218,25 +218,32 @@ export const FeedCard = ({ item, author, subtitleTokens = [], hasTrackLyrics = f
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '24px',
+            padding: '16px 20px',
             pointerEvents: 'none',
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.2) 100%)',
+            overflow: 'hidden',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.32) 50%, rgba(0,0,0,0.08) 100%)',
         }}>
             <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '8px 14px',
-                maxWidth: '85%',
+                gap: '6px 12px',
+                maxWidth: '88%',
+                maxHeight: '100%',
+                overflow: 'hidden',
             }}>
                 {subtitleTokens.map((token, idx) => {
                     const isLast = idx === subtitleTokens.length - 1;
                     const text = token.text ?? '';
+                    const baseFontSize = isLast ? 'clamp(1.3rem, 5.5vmin, 2.5rem)' : 'clamp(1rem, 4.5vmin, 2rem)';
                     if (text.includes('://')) {
-                        return <img key={token.time} alt="" style={{ width: 'auto', height: isLast ? 'clamp(1.6rem, 5vw, 2.8rem)' : 'clamp(1.3rem, 4vw, 2.2rem)' }} src={text} />;
+                        return <img key={token.time} alt="" style={{
+                            width: 'auto',
+                            height: isLast ? 'clamp(1.3rem, 5.5vmin, 2.5rem)' : 'clamp(1rem, 4.5vmin, 2rem)',
+                            animation: 'subtitleWordIn 0.22s ease-out',
+                        }} src={text} />;
                     }
-                    const baseFontSize = isLast ? 'clamp(1.6rem, 5vw, 2.8rem)' : 'clamp(1.3rem, 4vw, 2.2rem)';
                     const customColor = token.color;
                     const sizeMultiplier = token.sizePercent ? token.sizePercent / 100 : 1;
                     return (
@@ -246,13 +253,14 @@ export const FeedCard = ({ item, author, subtitleTokens = [], hasTrackLyrics = f
                             alignItems: 'center',
                             gap: 2,
                             textAlign: 'center',
+                            animation: 'subtitleWordIn 0.22s ease-out',
                         }}>
                             <span style={{
                                 color: customColor ? customColor : isLast ? '#fff' : 'rgba(255,255,255,0.45)',
                                 fontWeight: isLast ? 700 : 500,
                                 fontSize: sizeMultiplier === 1 ? baseFontSize : `calc(${baseFontSize} * ${sizeMultiplier})`,
                                 textShadow: isLast ? customColor ? `0 0 32px ${customColor}` : '0 0 32px rgba(255,255,255,0.5)' : 'none',
-                                transition: 'color 0.1s, font-size 0.1s',
+                                transition: 'color 0.12s',
                                 lineHeight: 1.2,
                             }}>
                                 {text}
@@ -366,7 +374,11 @@ export const FeedCard = ({ item, author, subtitleTokens = [], hasTrackLyrics = f
                     textAlign: item.type === 'text' ? 'center' : undefined,
                     flexShrink: 0,
                 }}>
-                    {item.text}
+                    {item.text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+                        /^https?:\/\//.test(part)
+                            ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: 'rgba(120,180,255,0.9)', textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>
+                            : part
+                    )}
                 </div>
             )}
 
@@ -398,6 +410,12 @@ export const PlayerScene = () => {
     } = useAudioPlayer();
     const { savedIds, toggleSaved } = useSaved();
     const [searchParams] = useSearchParams();
+    const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 640);
+    useEffect(() => {
+        const onResize = () => setIsMobile(window.innerWidth <= 640);
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
 
     const [feedMode, setFeedMode] = useState<FeedMode | null>(null);
     const [feedLoading, setFeedLoading] = useState(false);
@@ -993,7 +1011,7 @@ export const PlayerScene = () => {
                 background: 'linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%)',
             }}>
                 {/* Feed tabs */}
-                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.35rem', flex: 1, justifyContent: 'flex-start' }}>
+                <div className="feed-tabs-scroll" style={{ display: 'flex', alignItems: 'center', flexWrap: 'nowrap', gap: '0.35rem', flex: 1, overflowX: 'auto' }}>
                     {FEED_MODES.map(mode => (
                         <button
                             key={mode}
@@ -1069,9 +1087,15 @@ export const PlayerScene = () => {
                 pointerEvents: isFeedMode ? 'auto' : 'none',
             }}>
                 {isFeedMode && feedItems[feedItemIndex] ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={isMobile
+                        ? { position: 'relative' }
+                        : { display: 'flex', alignItems: 'center', gap: 14 }
+                    }>
                         <FeedCard item={feedItems[feedItemIndex]} author={feedAuthor} subtitleTokens={feedSubtitleTokens} hasTrackLyrics={currentTrack?.has_lyrics === 1} />
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, alignSelf: 'flex-end', paddingBottom: 12}}>
+                        <div style={isMobile
+                            ? { position: 'absolute', right: 10, bottom: 15, zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22 }
+                            : { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, alignSelf: 'flex-end', paddingBottom: 12 }
+                        }>
                             <button
                                 onClick={handlePostLike}
                                 disabled={postLikeLoading}
@@ -1259,7 +1283,7 @@ export const PlayerScene = () => {
             {/* Bottom left: track info */}
             <div style={{
                 position: 'absolute',
-                bottom: '6rem',
+                bottom: isMobile ? '3.5rem' : '6rem',
                 left: '1.5rem',
                 right: '5.75rem',
                 zIndex: 3,
@@ -1270,7 +1294,7 @@ export const PlayerScene = () => {
                 {currentTrack && (
                     <>
                         <div style={{gap: 12, display: 'flex', flexDirection: 'row'}}>
-                            <p style={{
+                            <p className="player-track-name" style={{
                                 color: '#fff',
                                 margin: 0,
                                 fontSize: 'clamp(1.05rem, 5vw, 1.45rem)',
@@ -1307,7 +1331,7 @@ export const PlayerScene = () => {
                                 </button>
                             )}
                         </div>
-                        <p style={{
+                        <p className="player-artist" style={{
                             color: 'rgba(255,255,255,0.58)',
                             margin: '0.3rem 0 0',
                             fontSize: 'clamp(0.78rem, 3.5vw, 0.95rem)',
@@ -1320,7 +1344,7 @@ export const PlayerScene = () => {
                             {currentTrack.artist}
                         </p>
                         {durationSec > 0 && (
-                            <p style={{
+                            <p className="player-timer" style={{
                                 color: 'rgba(255,255,255,0.28)',
                                 margin: '0.45rem 0 0',
                                 fontSize: '0.62rem',
@@ -1337,15 +1361,15 @@ export const PlayerScene = () => {
             <div style={{
                 position: 'absolute',
                 right: '1.1rem',
-                bottom: '6rem',
+                bottom: isMobile ? '4rem' : '6rem',
                 zIndex: 4,
                 display: 'flex',
-                flexDirection: 'column',
+                flexDirection: isMobile ? 'row' : 'column',
                 alignItems: 'center',
-                gap: '1.35rem',
+                gap: isMobile ? '1rem' : '1.35rem',
             }}>
                 {/* Volume */}
-                <div ref={volumeRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <div ref={volumeRef} className="player-volume-ctrl" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <Icon
                         name="volume"
                         size={22}
@@ -1397,6 +1421,7 @@ export const PlayerScene = () => {
 
                 {/* Prev */}
                 <button
+                    className="player-arrow-btn"
                     onClick={goPrev}
                     style={{
                         background: 'rgba(255,255,255,0.1)',
@@ -1418,6 +1443,7 @@ export const PlayerScene = () => {
 
                 {/* Play / Pause */}
                 <div
+                    className="player-play-btn"
                     onClick={toggle}
                     style={{
                         background: 'rgba(255,255,255,0.96)',
@@ -1441,6 +1467,7 @@ export const PlayerScene = () => {
 
                 {/* Next */}
                 <button
+                    className="player-arrow-btn"
                     onClick={goNext}
                     style={{
                         background: 'rgba(255,255,255,0.1)',
@@ -1573,6 +1600,17 @@ export const PlayerScene = () => {
                 @keyframes spinRecord {
                     from { transform: rotate(0deg); }
                     to   { transform: rotate(360deg); }
+                }
+                @keyframes subtitleWordIn {
+                    from { opacity: 0; transform: scale(0.82) translateY(6px); }
+                    to   { opacity: 1; transform: scale(1) translateY(0); }
+                }
+                .feed-tabs-scroll { scrollbar-width: none; }
+                .feed-tabs-scroll::-webkit-scrollbar { display: none; }
+                @media (max-width: 640px) {
+                    .player-arrow-btn { display: none !important; }
+                    .player-volume-ctrl { display: none !important; }
+                    .player-play-btn { width: 44px !important; height: 44px !important; }
                 }
             `}</style>
         </div>
