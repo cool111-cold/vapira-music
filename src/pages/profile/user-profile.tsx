@@ -56,6 +56,7 @@ interface ApiPost {
     user_id?: number | null
     author_id?: number | null
     time_code?: number | null
+    show_lyrics?: boolean | null
     likes_count?: number | null
     is_liked?: boolean | null
     is_reposted?: boolean | null
@@ -72,6 +73,7 @@ interface FeedItem {
     video: string | null
     text: string
     timeCode?: number | null
+    showLyrics?: boolean
     likesCount: number
     isLiked: boolean
     isReposted: boolean
@@ -88,6 +90,7 @@ const mapApiPost = (p: ApiPost): FeedItem => ({
     video: p.video_url ? (p.video_url.startsWith('http') ? p.video_url : `${BASE}${p.video_url}`) : null,
     text: p.text ?? '',
     timeCode: p.time_code ?? null,
+    showLyrics: p.show_lyrics ?? false,
     likesCount: p.likes_count ?? 0,
     isLiked: p.is_liked ?? false,
     isReposted: p.is_reposted ?? false,

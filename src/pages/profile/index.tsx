@@ -749,6 +749,7 @@ interface ApiPost {
     user_id?: number | null;
     author_id?: number | null;
     time_code?: number | null;
+    show_lyrics?: boolean | null;
     likes_count?: number | null;
     is_liked?: boolean | null;
     is_reposted?: boolean | null;
@@ -764,6 +765,7 @@ interface FeedItem {
     video: string | null;
     text: string;
     timeCode?: number | null;
+    showLyrics?: boolean;
     likesCount: number;
     isLiked: boolean;
     isReposted: boolean;
@@ -779,6 +781,7 @@ const mapApiPost = (p: ApiPost): FeedItem => ({
     video: p.video_url ? (p.video_url.startsWith('http') ? p.video_url : `${BASE}${p.video_url}`) : null,
     text: p.text ?? '',
     timeCode: p.time_code ?? null,
+    showLyrics: p.show_lyrics ?? false,
     likesCount: p.likes_count ?? 0,
     isLiked: p.is_liked ?? false,
     isReposted: p.is_reposted ?? false,
@@ -919,7 +922,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                 body: JSON.stringify({ text: editText }),
             })
             if (res.ok) {
-                onEdited?.(item.id, { text: editText, image: item.image, video: item.video, track_id: item.track_id, timeCode: item.timeCode ?? null })
+                onEdited?.(item.id, { text: editText, image: item.image, video: item.video, track_id: item.track_id, timeCode: item.timeCode ?? null, showLyrics: item.showLyrics ?? false })
                 setIsEditing(false)
             }
         } finally {
@@ -1193,6 +1196,7 @@ const FeedPost = ({ item, token, onDelete, onEdited, readOnly }: { item: FeedIte
                         stream_url: track.src.startsWith(BASE) ? track.src.slice(BASE.length) : track.src,
                     } : null}
                     defaultTimeCode={item.timeCode}
+                    defaultShowLyrics={item.showLyrics ?? false}
                     defaultImages={item.image ? (Array.isArray(item.image) ? item.image : [item.image]) : []}
                     defaultVideo={item.video ?? null}
                     editPostId={item.id}
@@ -1238,7 +1242,7 @@ const FeedPostsList = ({ token }: { token: string }) => {
     }
 
     const handleDelete = (id: number) => setPosts(prev => prev.filter(p => p.id !== id))
-    const handleEdited = (id: number, updates: PostEditedUpdates) => setPosts(prev => prev.map(p => p.id === id ? { ...p, text: updates.text, image: updates.image, video: updates.video, track_id: updates.track_id, timeCode: updates.timeCode } : p))
+    const handleEdited = (id: number, updates: PostEditedUpdates) => setPosts(prev => prev.map(p => p.id === id ? { ...p, text: updates.text, image: updates.image, video: updates.video, track_id: updates.track_id, timeCode: updates.timeCode, showLyrics: updates.showLyrics } : p))
 
     return (
         <div style={{ marginTop: '6rem', maxWidth: 520, margin: '6rem auto 0' }}>

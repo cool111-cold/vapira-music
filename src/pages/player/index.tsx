@@ -158,6 +158,7 @@ export interface ApiPost {
     user_id?: number | null;
     author_id?: number | null;
     time_code?: number | null;
+    show_lyrics?: boolean | number | null;
     likes_count?: number | null;
     is_liked?: boolean | null;
     is_reposted?: boolean | null;
@@ -174,6 +175,7 @@ export interface FeedItem {
     video: string | null;
     text: string;
     timeCode?: number | null;
+    showLyrics?: boolean;
     likesCount: number;
     isLiked: boolean;
     isReposted: boolean;
@@ -190,13 +192,14 @@ export const mapApiPost = (p: ApiPost): FeedItem => ({
     video: p.video_url ? (p.video_url.startsWith('http') ? p.video_url : `${BASE_URL}${p.video_url}`) : null,
     text: p.text ?? '',
     timeCode: p.time_code ?? null,
+    showLyrics: Boolean(p.show_lyrics),
     likesCount: p.likes_count ?? 0,
     isLiked: p.is_liked ?? false,
     isReposted: p.is_reposted ?? false,
     repostedByUserId: p.reposted_by_user_id ?? null,
 });
 
-export const FeedCard = ({ item, author, subtitleTokens = [] }: { item: FeedItem; author: FeedAuthor | null; subtitleTokens?: LyricWord[] }) => {
+export const FeedCard = ({ item, author, subtitleTokens = [], hasTrackLyrics = false }: { item: FeedItem; author: FeedAuthor | null; subtitleTokens?: LyricWord[]; hasTrackLyrics?: boolean }) => {
     const navigate = useNavigate();
 
     const isMultiImage = Array.isArray(item.image);
@@ -206,7 +209,7 @@ export const FeedCard = ({ item, author, subtitleTokens = [] }: { item: FeedItem
     const DEFAULT_AVATAR = '/images/ava.jpg'
 
     const hasMedia = isMultiImage || isSingleImage || isVideoFile || isGif;
-    const showCenteredSubtitle = hasMedia && subtitleTokens.length > 0;
+    const showCenteredSubtitle = hasMedia && item.showLyrics && hasTrackLyrics && subtitleTokens.length > 0;
 
     const renderCenteredSubtitle = () => (
         <div style={{
@@ -1067,7 +1070,7 @@ export const PlayerScene = () => {
             }}>
                 {isFeedMode && feedItems[feedItemIndex] ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                        <FeedCard item={feedItems[feedItemIndex]} author={feedAuthor} subtitleTokens={feedSubtitleTokens} />
+                        <FeedCard item={feedItems[feedItemIndex]} author={feedAuthor} subtitleTokens={feedSubtitleTokens} hasTrackLyrics={currentTrack?.has_lyrics === 1} />
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, alignSelf: 'flex-end', paddingBottom: 12}}>
                             <button
                                 onClick={handlePostLike}

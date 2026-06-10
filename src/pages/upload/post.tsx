@@ -123,13 +123,14 @@ const IconMusic = () => (
     </svg>
 )
 
-export type PostEditedUpdates = { text: string; image: string | string[] | null; video: string | null; track_id: number; timeCode: number | null }
+export type PostEditedUpdates = { text: string; image: string | string[] | null; video: string | null; track_id: number; timeCode: number | null; showLyrics: boolean }
 
 interface PostComposerProps {
     onClose: () => void
     defaultText?: string
     defaultTrack?: TrackResult | null
     defaultTimeCode?: number | null
+    defaultShowLyrics?: boolean
     defaultImages?: string[]
     defaultVideo?: string | null
     editPostId?: number
@@ -139,7 +140,7 @@ interface PostComposerProps {
 
 const toAbsUrl = (url: string) => url.startsWith('http') ? url : `${BASE}${url}`
 
-const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited, onCreated }: PostComposerProps) => {
+const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultShowLyrics, defaultImages, defaultVideo, editPostId, onEdited, onCreated }: PostComposerProps) => {
     const { user, token } = useAuth()
     const [query, setQuery] = useState('')
     const [searchResults, setSearchResults] = useState<TrackResult[]>([])
@@ -153,7 +154,8 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
     const [imagePreviews, setImagePreviews] = useState<string[]>([])
     const [videoFile, setVideoFile] = useState<File | null>(null)
     const [videoPreview, setVideoPreview] = useState<string | null>(null)
-    const [timeCode, setTimeCode] = useState<number | null>(defaultTimeCode ?? null)
+    const [timeCode, setTimeCode] = useState<number | null>(defaultTrack ? (defaultTimeCode ?? 0) : (defaultTimeCode ?? null))
+    const [showSubtitles, setShowSubtitles] = useState(defaultShowLyrics ?? false)
     const [seekSuggestion, setSeekSuggestion] = useState<number | null>(null)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
@@ -211,7 +213,8 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
         setSearchResults([])
         setShowTrackPicker(false)
         setSeekSuggestion(null)
-        setTimeCode(null)
+        setTimeCode(0)
+        setShowSubtitles(false)
     }
 
     const handleAddImages = (files: FileList) => {
@@ -249,6 +252,7 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
                 if (text.trim()) fd.append('text', text.trim())
                 if (selectedTrack) fd.append('track_id', String(selectedTrack.id))
                 if (timeCode !== null) fd.append('time_code', String(timeCode))
+                fd.append('show_lyrics', String(showSubtitles))
                 existingImages.forEach(img => fd.append('existing_images', img))
                 if (existingVideo) fd.append('existing_video', existingVideo)
                 images.forEach(img => fd.append('image', img))
@@ -274,6 +278,7 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
                     video: updatedVideo,
                     track_id: selectedTrack?.id ?? 0,
                     timeCode,
+                    showLyrics: showSubtitles,
                 })
                 onClose()
                 return
@@ -286,6 +291,7 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
             if (text.trim()) fd.append('text', text.trim())
             if (selectedTrack) fd.append('track_id', String(selectedTrack.id))
             if (timeCode !== null) fd.append('time_code', String(timeCode))
+            fd.append('show_lyrics', String(showSubtitles))
             images.forEach(img => fd.append('image', img))
             if (videoFile) fd.append('video', videoFile)
 
@@ -454,7 +460,7 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
                             <TrackMiniPlayer track={selectedTrack} onSeek={s => setSeekSuggestion(s)} />
                         </div>
                         <button
-                            onClick={() => { setSelectedTrack(null); setSeekSuggestion(null); setTimeCode(null) }}
+                            onClick={() => { setSelectedTrack(null); setSeekSuggestion(null); setTimeCode(null); setShowSubtitles(false) }}
                             style={{
                                 background: 'none', border: 'none', color: '#555',
                                 cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1,
@@ -498,6 +504,55 @@ const PostComposer = ({ onClose, defaultText, defaultTrack, defaultTimeCode, def
                             >×</button>
                         </div>
                     )}
+                    <label
+                        style={{
+                            marginTop: '0.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.6rem',
+                            padding: '0.45rem 0.7rem',
+                            background: showSubtitles ? '#161616' : '#101010',
+                            border: `1px solid ${showSubtitles ? '#343434' : '#222'}`,
+                            borderRadius: '5px',
+                            color: '#aaa',
+                            fontSize: '0.78rem',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                        }}
+                    >
+                        <input
+                            type="checkbox"
+                            checked={showSubtitles}
+                            onChange={e => setShowSubtitles(e.target.checked)}
+                            style={{
+                                position: 'absolute',
+                                opacity: 0,
+                                pointerEvents: 'none',
+                            }}
+                        />
+                        <span
+                            aria-hidden="true"
+                            style={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: 4,
+                                border: `1px solid ${showSubtitles ? '#fff' : '#3a3a3a'}`,
+                                background: showSubtitles ? '#fff' : 'transparent',
+                                color: '#000',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                transition: 'all 0.15s ease',
+                                fontSize: '0.7rem',
+                                fontWeight: 700,
+                                lineHeight: 1,
+                            }}
+                        >
+                            {showSubtitles ? '✓' : ''}
+                        </span>
+                        <span>Отображать субтитры</span>
+                    </label>
                 </div>
             )}
 
@@ -682,6 +737,7 @@ interface CreatePostModalProps {
     defaultText?: string
     defaultTrack?: TrackResult | null
     defaultTimeCode?: number | null
+    defaultShowLyrics?: boolean
     defaultImages?: string[]
     defaultVideo?: string | null
     editPostId?: number
@@ -689,7 +745,7 @@ interface CreatePostModalProps {
     onCreated?: () => void
 }
 
-export const CreatePostModal = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultImages, defaultVideo, editPostId, onEdited, onCreated }: CreatePostModalProps) => {
+export const CreatePostModal = ({ onClose, defaultText, defaultTrack, defaultTimeCode, defaultShowLyrics, defaultImages, defaultVideo, editPostId, onEdited, onCreated }: CreatePostModalProps) => {
     return (
         <div
             style={{
@@ -726,6 +782,7 @@ export const CreatePostModal = ({ onClose, defaultText, defaultTrack, defaultTim
                     defaultText={defaultText}
                     defaultTrack={defaultTrack}
                     defaultTimeCode={defaultTimeCode}
+                    defaultShowLyrics={defaultShowLyrics}
                     defaultImages={defaultImages}
                     defaultVideo={defaultVideo}
                     editPostId={editPostId}
