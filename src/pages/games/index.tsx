@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-const API = 'http://127.0.0.1:8000';
-const WS_BASE = 'ws://127.0.0.1:8000';
+// const API = 'http://127.0.0.1:8000';
+// const WS_BASE = 'ws://127.0.0.1:8000';
+const API = 'http://vapira.ru';
+const WS_BASE = 'ws://vapira.ru';
 const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c'];
 const DIFF_LABEL: Record<number, string> = { 1: 'Лёгкое', 2: 'Среднее', 3: 'Сложное' };
 const DIFF_COLOR: Record<number, string> = { 1: '#059669', 2: '#d97706', 3: '#dc2626' };
